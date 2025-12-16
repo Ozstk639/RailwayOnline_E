@@ -33,20 +33,10 @@ export function LineHighlightLayer({
 
     if (latLngs.length < 2) return;
 
-    // 绘制线路底层（白色描边）
-    const outlinePath = L.polyline(latLngs, {
-      color: '#ffffff',
-      weight: 10,
-      opacity: 0.9,
-      lineCap: 'round',
-      lineJoin: 'round',
-    });
-    layerGroup.addLayer(outlinePath);
-
-    // 绘制线路主体（使用线路颜色）
+    // 绘制线路主体（使用线路颜色，加粗显示）
     const mainPath = L.polyline(latLngs, {
       color: line.color,
-      weight: 6,
+      weight: 5,
       opacity: 1,
       lineCap: 'round',
       lineJoin: 'round',
@@ -59,10 +49,10 @@ export function LineHighlightLayer({
       const isTerminal = index === 0 || index === line.stations.length - 1;
 
       const marker = L.circleMarker(latLng, {
-        radius: isTerminal ? 8 : 5,
-        fillColor: isTerminal ? line.color : '#ffffff',
+        radius: isTerminal ? 7 : 5,
+        fillColor: '#ffffff',
         fillOpacity: 1,
-        color: isTerminal ? '#ffffff' : line.color,
+        color: line.color,
         weight: isTerminal ? 3 : 2,
       });
 

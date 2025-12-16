@@ -11,6 +11,7 @@ import { WorldSwitcher } from './WorldSwitcher';
 import { SearchBar } from '../Search/SearchBar';
 import { NavigationPanel } from '../Navigation/NavigationPanel';
 import { LineDetailCard } from '../LineDetail/LineDetailCard';
+import { PointDetailCard } from '../PointDetail/PointDetailCard';
 import { Toolbar, LayerControl, AboutCard } from '../Toolbar/Toolbar';
 import { LinesPage } from '../Lines/LinesPage';
 import { fetchRailwayData, parseRailwayData, getAllStations } from '@/lib/railwayParser';
@@ -49,6 +50,13 @@ function MapContainer() {
   const [landmarks, setLandmarks] = useState<ParsedLandmark[]>([]);
   const [routePath, setRoutePath] = useState<Array<{ coord: Coordinate }> | null>(null);
   const [highlightedLine, setHighlightedLine] = useState<ParsedLine | null>(null);
+  const [selectedPoint, setSelectedPoint] = useState<{
+    type: 'station' | 'landmark';
+    name: string;
+    coord: Coordinate;
+    station?: ParsedStation;
+    landmark?: ParsedLandmark;
+  } | null>(null);
 
   // 关闭"铁路图层"时，同时隐藏线路高亮与详情卡片，避免看起来"图层控制不生效"
   useEffect(() => {
@@ -125,6 +133,7 @@ function MapContainer() {
     if (!showRailway) setShowRailway(true);
     setHighlightedLine(line);
     setRoutePath(null);  // 清除路径规划
+    setSelectedPoint(null);  // 清除点位选中
 
     const map = leafletMapRef.current;
     const proj = projectionRef.current;
@@ -136,6 +145,62 @@ function MapContainer() {
     );
     map.fitBounds(bounds, { padding: [50, 50] });
   }, [showRailway]);
+
+  // 站点点击处理
+  const handleStationClick = useCallback((station: ParsedStation) => {
+    setSelectedPoint({
+      type: 'station',
+      name: station.name,
+      coord: station.coord,
+      station,
+    });
+    setHighlightedLine(null);
+
+    const map = leafletMapRef.current;
+    const proj = projectionRef.current;
+    if (!map || !proj) return;
+    const latLng = proj.locationToLatLng(station.coord.x, station.coord.y || 64, station.coord.z);
+    map.setView(latLng, 5);
+  }, []);
+
+  // 地标点击处理
+  const handleLandmarkClick = useCallback((landmark: ParsedLandmark) => {
+    if (!landmark.coord) return;
+    setSelectedPoint({
+      type: 'landmark',
+      name: landmark.name,
+      coord: landmark.coord,
+      landmark,
+    });
+    setHighlightedLine(null);
+
+    const map = leafletMapRef.current;
+    const proj = projectionRef.current;
+    if (!map || !proj) return;
+    const latLng = proj.locationToLatLng(landmark.coord.x, landmark.coord.y || 64, landmark.coord.z);
+    map.setView(latLng, 5);
+  }, []);
+
+  // 计算附近点位
+  const getNearbyPoints = useCallback((coord: Coordinate, radius: number = 500) => {
+    const getDistance = (a: Coordinate, b: Coordinate) => {
+      const dx = a.x - b.x;
+      const dz = a.z - b.z;
+      return Math.sqrt(dx * dx + dz * dz);
+    };
+
+    const nearbyStations = stations
+      .filter(s => getDistance(coord, s.coord) <= radius && getDistance(coord, s.coord) > 0)
+      .sort((a, b) => getDistance(coord, a.coord) - getDistance(coord, b.coord))
+      .slice(0, 5);
+
+    const nearbyLandmarks = landmarks
+      .filter(l => l.coord && getDistance(coord, l.coord) <= radius && getDistance(coord, l.coord) > 0)
+      .sort((a, b) => getDistance(coord, a.coord!) - getDistance(coord, b.coord!))
+      .slice(0, 5);
+
+    return { nearbyStations, nearbyLandmarks };
+  }, [stations, landmarks]);
 
   // 导航路径找到时的处理
   const handleRouteFound = useCallback((path: Array<{ coord: Coordinate }>) => {
@@ -284,6 +349,7 @@ function MapContainer() {
           projection={projectionRef.current}
           worldId={currentWorld}
           visible={showRailway}
+          onStationClick={handleStationClick}
         />
       )}
 
@@ -294,6 +360,7 @@ function MapContainer() {
           projection={projectionRef.current}
           worldId={currentWorld}
           visible={showLandmark}
+          onLandmarkClick={handleLandmarkClick}
         />
       )}
 
@@ -341,7 +408,7 @@ function MapContainer() {
         )}
 
       {/* 线路详情卡片 - 路径规划打开时隐藏 */}
-      {highlightedLine && !showNavigation && (
+      {highlightedLine && !showNavigation && !selectedPoint && (
         <LineDetailCard
           line={highlightedLine}
             onClose={() => setHighlightedLine(null)}
@@ -354,6 +421,21 @@ function MapContainer() {
             }}
           />
         )}
+
+        {/* 点位详情卡片 */}
+        {selectedPoint && !showNavigation && (() => {
+          const { nearbyStations, nearbyLandmarks } = getNearbyPoints(selectedPoint.coord);
+          return (
+            <PointDetailCard
+              selectedPoint={selectedPoint}
+              nearbyStations={nearbyStations}
+              nearbyLandmarks={nearbyLandmarks}
+              onClose={() => setSelectedPoint(null)}
+              onStationClick={handleStationClick}
+              onLandmarkClick={handleLandmarkClick}
+            />
+          );
+        })()}
 
         {/* 清除路径按钮 - 路径规划打开时隐藏 */}
         {routePath && routePath.length > 0 && !showNavigation && (
