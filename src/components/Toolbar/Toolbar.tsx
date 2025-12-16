@@ -6,11 +6,13 @@
 interface ToolbarProps {
   onNavigationClick: () => void;
   onLinesClick: () => void;
+  onHelpClick: () => void;
 }
 
 export function Toolbar({
   onNavigationClick,
   onLinesClick,
+  onHelpClick,
 }: ToolbarProps) {
   return (
     <div className="bg-white/90 rounded-lg shadow-lg p-2 flex items-center gap-1">
@@ -46,6 +48,7 @@ export function Toolbar({
 
       {/* 帮助 */}
       <button
+        onClick={onHelpClick}
         className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors group relative"
         title="帮助"
       >
@@ -55,25 +58,58 @@ export function Toolbar({
         <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs bg-gray-800 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
           帮助
         </span>
-        {/* 帮助弹出卡片 */}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
-          <div className="text-xs text-gray-600 space-y-2">
+      </button>
+    </div>
+  );
+}
+
+/**
+ * 关于卡片组件
+ */
+interface AboutCardProps {
+  onClose: () => void;
+}
+
+export function AboutCard({ onClose }: AboutCardProps) {
+  return (
+    <div className="bg-white/90 rounded-lg shadow-lg p-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium text-gray-800">关于</span>
+        <button
+          onClick={onClose}
+          className="p-1 hover:bg-gray-200 rounded text-gray-500"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div className="text-xs text-gray-600 space-y-2">
+        <div className="bg-yellow-50 border border-yellow-200 rounded px-2 py-1 text-yellow-700">
+          该平台正在测试中
+        </div>
+        <div>
+          <span className="font-medium text-gray-800">开发：</span>
+          <span>Venti_Lynn</span>
+        </div>
+        <div>
+          <span className="font-medium text-gray-800">数据来源：</span>
+          <div className="mt-1 space-y-0.5 text-gray-500">
             <div>
-              <span className="font-medium text-gray-800">开发：</span>
-              <span>Venti_Lynn</span>
+              <a href="https://satellite.ria.red/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                莉亚红一号卫星
+              </a>
             </div>
+            <div>秋月白</div>
+            <div>FY_杨</div>
             <div>
-              <span className="font-medium text-gray-800">数据来源：</span>
-              <div className="mt-1 space-y-0.5 text-gray-500">
-                <div>莉亚红一号卫星</div>
-                <div>秋月白</div>
-                <div>FY_杨</div>
-                <div>莉亚数据开放平台</div>
-              </div>
+              <a href="https://ria-data.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                莉亚数据开放平台
+              </a>
             </div>
           </div>
         </div>
-      </button>
+      </div>
     </div>
   );
 }

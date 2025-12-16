@@ -11,7 +11,7 @@ import { WorldSwitcher } from './WorldSwitcher';
 import { SearchBar } from '../Search/SearchBar';
 import { NavigationPanel } from '../Navigation/NavigationPanel';
 import { LineDetailCard } from '../LineDetail/LineDetailCard';
-import { Toolbar, LayerControl } from '../Toolbar/Toolbar';
+import { Toolbar, LayerControl, AboutCard } from '../Toolbar/Toolbar';
 import { LinesPage } from '../Lines/LinesPage';
 import { fetchRailwayData, parseRailwayData, getAllStations } from '@/lib/railwayParser';
 import { fetchRMPData, parseRMPData } from '@/lib/rmpParser';
@@ -43,6 +43,7 @@ function MapContainer() {
   const [dimBackground, setDimBackground] = useState(false);
   const [showNavigation, setShowNavigation] = useState(false);
   const [showLinesPage, setShowLinesPage] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [stations, setStations] = useState<ParsedStation[]>([]);
   const [lines, setLines] = useState<ParsedLine[]>([]);
   const [landmarks, setLandmarks] = useState<ParsedLandmark[]>([]);
@@ -321,7 +322,13 @@ function MapContainer() {
         <Toolbar
           onNavigationClick={() => setShowNavigation(true)}
           onLinesClick={() => setShowLinesPage(true)}
+          onHelpClick={() => setShowAbout(true)}
         />
+
+        {/* 关于卡片 */}
+        {showAbout && (
+          <AboutCard onClose={() => setShowAbout(false)} />
+        )}
 
         {/* 路径规划面板 - 展开时隐藏其他内容 */}
         {showNavigation && (
