@@ -4,9 +4,10 @@
  */
 
 import type { Station, LineInfo, ParsedLine, ParsedStation, Coordinate, BureausConfig } from '@/types';
+import { fetchWithMirror, fetchLocal, type ProgressCallback } from './fetchWithMirror';
 
-// 数据源 URL
-const RAILWAY_DATA_URL = 'https://raw.githubusercontent.com/RainC7/RIA_Data/main/data/railway';
+// 数据源 URL (GitHub raw)
+const RAILWAY_DATA_BASE_URL = 'https://raw.githubusercontent.com/RainC7/RIA_Data/main/data/railway';
 const BUREAUS_CONFIG_URL = '/data/bureaus.json';
 
 // 铁路局配置缓存
@@ -69,15 +70,14 @@ function getLineColor(lineId: string): string {
 /**
  * 获取指定世界的铁路数据
  */
-export async function fetchRailwayData(worldId: string): Promise<Station[]> {
-  const url = `${RAILWAY_DATA_URL}/${worldId}.json`;
+export async function fetchRailwayData(
+  worldId: string,
+  onProgress?: ProgressCallback
+): Promise<Station[]> {
+  const url = `${RAILWAY_DATA_BASE_URL}/${worldId}.json`;
 
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch railway data: ${response.status}`);
-    }
-    return await response.json();
+    return await fetchWithMirror<Station[]>(url, '铁路数据', onProgress);
   } catch (error) {
     console.error(`Error fetching railway data for ${worldId}:`, error);
     return [];
@@ -87,15 +87,11 @@ export async function fetchRailwayData(worldId: string): Promise<Station[]> {
 /**
  * 获取铁路局配置
  */
-export async function fetchBureausConfig(): Promise<BureausConfig> {
+export async function fetchBureausConfig(onProgress?: ProgressCallback): Promise<BureausConfig> {
   if (bureausCache) return bureausCache;
 
   try {
-    const response = await fetch(BUREAUS_CONFIG_URL);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch bureaus config: ${response.status}`);
-    }
-    bureausCache = await response.json();
+    bureausCache = await fetchLocal<BureausConfig>(BUREAUS_CONFIG_URL, '铁路局配置', onProgress);
     return bureausCache!;
   } catch (error) {
     console.error('Error fetching bureaus config:', error);

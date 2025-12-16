@@ -3,6 +3,8 @@
  * 从 RIA_Data 仓库获取地标数据
  */
 
+import { fetchWithMirror, type ProgressCallback } from './fetchWithMirror';
+
 export interface LandmarkCoord {
   x: number;
   y: number;
@@ -57,16 +59,14 @@ export const GRADE_SIZES: Record<string, number> = {
 /**
  * 获取地标数据
  */
-export async function fetchLandmarkData(worldId: string): Promise<Landmark[]> {
+export async function fetchLandmarkData(
+  worldId: string,
+  onProgress?: ProgressCallback
+): Promise<Landmark[]> {
   const url = `https://raw.githubusercontent.com/RainC7/RIA_Data/main/data/landmark/${worldId}.json`;
 
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.warn(`Failed to fetch landmark data for ${worldId}: ${response.status}`);
-      return [];
-    }
-    return await response.json();
+    return await fetchWithMirror<Landmark[]>(url, '地标数据', onProgress);
   } catch (error) {
     console.error('Error fetching landmark data:', error);
     return [];

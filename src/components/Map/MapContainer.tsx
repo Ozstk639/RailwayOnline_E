@@ -14,6 +14,8 @@ import { LineDetailCard } from '../LineDetail/LineDetailCard';
 import { PointDetailCard } from '../PointDetail/PointDetailCard';
 import { Toolbar, LayerControl, AboutCard } from '../Toolbar/Toolbar';
 import { LinesPage } from '../Lines/LinesPage';
+import { LoadingOverlay } from '../Loading/LoadingOverlay';
+import { useLoadingStore } from '@/store/loadingStore';
 import { fetchRailwayData, parseRailwayData, getAllStations } from '@/lib/railwayParser';
 import { fetchRMPData, parseRMPData } from '@/lib/rmpParser';
 import { fetchLandmarkData, parseLandmarkData } from '@/lib/landmarkParser';
@@ -77,26 +79,46 @@ function MapContainer() {
     }
   }, [dimBackground]);
 
+  // 加载状态管理
+  const { startLoading, updateStage, finishLoading, initialized } = useLoadingStore();
+
   // 加载搜索数据
   useEffect(() => {
     async function loadSearchData() {
+      // 首次加载时显示进度
+      const isFirstLoad = !initialized;
+      if (isFirstLoad) {
+        startLoading([
+          { name: 'railway', label: '铁路数据' },
+          { name: 'rmp', label: 'RMP 线路数据' },
+          { name: 'landmark', label: '地标数据' },
+        ]);
+      }
+
       // 加载 RIA_Data 站点数据
+      if (isFirstLoad) updateStage('railway', 'loading');
       const railwayData = await fetchRailwayData(currentWorld);
       const { lines: riaLines } = parseRailwayData(railwayData);
+      if (isFirstLoad) updateStage('railway', 'success');
 
       // 加载 RMP 数据（如果有）
       let rmpLines: ParsedLine[] = [];
       let rmpStations: ParsedStation[] = [];
       const rmpFile = RMP_DATA_FILES[currentWorld];
       if (rmpFile) {
+        if (isFirstLoad) updateStage('rmp', 'loading');
         try {
           const rmpData = await fetchRMPData(rmpFile);
           const parsed = parseRMPData(rmpData);
           rmpLines = parsed.lines;
           rmpStations = parsed.stations;
+          if (isFirstLoad) updateStage('rmp', 'success');
         } catch (e) {
           console.warn(`Failed to load RMP data for ${currentWorld}:`, e);
+          if (isFirstLoad) updateStage('rmp', 'error', '加载失败');
         }
+      } else {
+        if (isFirstLoad) updateStage('rmp', 'success');
       }
 
       // 合并线路和站点
@@ -112,15 +134,25 @@ function MapContainer() {
       setStations(allStations);
 
       // 加载地标数据
+      if (isFirstLoad) updateStage('landmark', 'loading');
       const landmarkData = await fetchLandmarkData(currentWorld);
       setLandmarks(parseLandmarkData(landmarkData));
+      if (isFirstLoad) updateStage('landmark', 'success');
 
       // 清除之前的路径
       setRoutePath(null);
       setHighlightedLine(null);
+
+      // 完成加载
+      if (isFirstLoad) {
+        // 延迟一点关闭，让用户看到完成状态
+        setTimeout(() => {
+          finishLoading();
+        }, 500);
+      }
     }
     loadSearchData();
-  }, [currentWorld]);
+  }, [currentWorld, initialized, startLoading, updateStage, finishLoading]);
 
   // 搜索结果选中处理
   const handleSearchSelect = useCallback((result: { coord: { x: number; y: number; z: number } }) => {
@@ -508,6 +540,9 @@ function MapContainer() {
           }}
         />
       )}
+
+      {/* 加载进度提示 */}
+      <LoadingOverlay />
     </div>
   );
 }
