@@ -82,12 +82,22 @@ export function SearchBar({ stations, landmarks, lines, onSelect, onLineSelect }
       }
     }
 
-    // 搜索地标
+    // 搜索地标（支持名称和编号搜索）
     for (const landmark of landmarks) {
-      if (landmark.coord && landmark.name.toLowerCase().includes(searchQuery)) {
+      if (!landmark.coord) continue;
+
+      // 支持按编号搜索（如 #42 或 42）
+      const idString = String(landmark.id);
+      const idWithHash = `#${landmark.id}`;
+      const nameMatch = landmark.name.toLowerCase().includes(searchQuery);
+      const idMatch = searchQuery.startsWith('#')
+        ? idWithHash.toLowerCase() === searchQuery || idWithHash.toLowerCase().startsWith(searchQuery)
+        : idString === searchQuery || idString.startsWith(searchQuery);
+
+      if (nameMatch || idMatch) {
         matchedResults.push({
           type: 'landmark',
-          name: landmark.name,
+          name: `#${landmark.id} ${landmark.name}`,
           coord: landmark.coord,
           extra: landmark.grade,
         });
