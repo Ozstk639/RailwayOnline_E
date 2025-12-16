@@ -3,7 +3,7 @@
  * 在地图上渲染地标点
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
 import type { ParsedLandmark } from '@/lib/landmarkParser';
 import {
@@ -30,28 +30,45 @@ export function LandmarkLayer({
   onLandmarkClick,
 }: LandmarkLayerProps) {
   const [landmarks, setLandmarks] = useState<ParsedLandmark[]>([]);
-  const [layerGroup, setLayerGroup] = useState<L.LayerGroup | null>(null);
+  const layerGroupRef = useRef<L.LayerGroup | null>(null);
 
   // 加载地标数据
   useEffect(() => {
+    let cancelled = false;
     async function loadData() {
+      // 先清空旧数据，避免切换世界时短暂显示上一世界的地标
+      setLandmarks([]);
       const rawData = await fetchLandmarkData(worldId);
       const parsed = parseLandmarkData(rawData);
-      setLandmarks(parsed);
+      if (!cancelled) setLandmarks(parsed);
     }
     loadData();
+    return () => {
+      cancelled = true;
+    };
   }, [worldId]);
 
-  // 渲染地标图层
+  // 创建图层组（仅一次）
   useEffect(() => {
-    if (!map || landmarks.length === 0) return;
-
-    // 清除旧图层
-    if (layerGroup) {
-      map.removeLayer(layerGroup);
-    }
+    if (!map) return;
 
     const group = L.layerGroup();
+    layerGroupRef.current = group;
+    if (visible) group.addTo(map);
+
+    return () => {
+      group.remove();
+      if (layerGroupRef.current === group) layerGroupRef.current = null;
+    };
+  }, [map]);
+
+  // 渲染地标图层内容（复用同一个图层组）
+  useEffect(() => {
+    const group = layerGroupRef.current;
+    if (!group) return;
+
+    group.clearLayers();
+    if (landmarks.length === 0) return;
 
     // 渲染每个地标
     for (const landmark of landmarks) {
@@ -110,35 +127,23 @@ export function LandmarkLayer({
 
       group.addLayer(marker);
     }
-
-    setLayerGroup(group);
-
-    // 根据 visible 决定是否添加到地图
-    if (visible) {
-      group.addTo(map);
-    }
-
-    return () => {
-      if (group) {
-        map.removeLayer(group);
-      }
-    };
-  }, [map, landmarks, projection, onLandmarkClick, visible]);
+  }, [landmarks, projection, onLandmarkClick]);
 
   // 控制图层可见性
   useEffect(() => {
-    if (!layerGroup || !map) return;
+    const group = layerGroupRef.current;
+    if (!group || !map) return;
 
     if (visible) {
-      if (!map.hasLayer(layerGroup)) {
-        layerGroup.addTo(map);
+      if (!map.hasLayer(group)) {
+        group.addTo(map);
       }
     } else {
-      if (map.hasLayer(layerGroup)) {
-        map.removeLayer(layerGroup);
+      if (map.hasLayer(group)) {
+        map.removeLayer(group);
       }
     }
-  }, [visible, layerGroup, map]);
+  }, [visible, map]);
 
   return null;
 }

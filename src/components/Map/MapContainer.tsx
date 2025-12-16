@@ -11,7 +11,7 @@ import { WorldSwitcher } from './WorldSwitcher';
 import { SearchBar } from '../Search/SearchBar';
 import { NavigationPanel } from '../Navigation/NavigationPanel';
 import { LineDetailCard } from '../LineDetail/LineDetailCard';
-import { Toolbar } from '../Toolbar/Toolbar';
+import { Toolbar, LayerControl } from '../Toolbar/Toolbar';
 import { fetchRailwayData, parseRailwayData, getAllStations } from '@/lib/railwayParser';
 import { fetchLandmarkData, parseLandmarkData } from '@/lib/landmarkParser';
 import type { ParsedStation, ParsedLine, Coordinate } from '@/types';
@@ -39,6 +39,13 @@ function MapContainer() {
   const [landmarks, setLandmarks] = useState<ParsedLandmark[]>([]);
   const [routePath, setRoutePath] = useState<Array<{ coord: Coordinate }> | null>(null);
   const [highlightedLine, setHighlightedLine] = useState<ParsedLine | null>(null);
+
+  // 关闭“铁路图层”时，同时隐藏线路高亮与详情卡片，避免看起来“图层控制不生效”
+  useEffect(() => {
+    if (!showRailway) {
+      setHighlightedLine(null);
+    }
+  }, [showRailway]);
 
   // 加载搜索数据
   useEffect(() => {
@@ -72,6 +79,7 @@ function MapContainer() {
 
   // 线路选中处理 - 高亮线路并调整视图
   const handleLineSelect = useCallback((line: ParsedLine) => {
+    if (!showRailway) setShowRailway(true);
     setHighlightedLine(line);
     setRoutePath(null);  // 清除路径规划
 
@@ -84,7 +92,7 @@ function MapContainer() {
       line.stations.map(s => proj.locationToLatLng(s.coord.x, s.coord.y || 64, s.coord.z))
     );
     map.fitBounds(bounds, { padding: [50, 50] });
-  }, []);
+  }, [showRailway]);
 
   // 导航路径找到时的处理
   const handleRouteFound = useCallback((path: Array<{ coord: Coordinate }>) => {
@@ -258,15 +266,6 @@ function MapContainer() {
           />
         </div>
 
-        {/* 工具栏 */}
-        <Toolbar
-          onNavigationClick={() => setShowNavigation(true)}
-          showRailway={showRailway}
-          showLandmark={showLandmark}
-          onToggleRailway={setShowRailway}
-          onToggleLandmark={setShowLandmark}
-        />
-
         {/* 搜索栏 */}
         <SearchBar
           stations={stations}
@@ -274,6 +273,11 @@ function MapContainer() {
           lines={lines}
           onSelect={handleSearchSelect}
           onLineSelect={handleLineSelect}
+        />
+
+        {/* 工具栏 */}
+        <Toolbar
+          onNavigationClick={() => setShowNavigation(true)}
         />
 
         {/* 路径规划面板 - 展开时隐藏其他内容 */}
@@ -286,10 +290,10 @@ function MapContainer() {
           />
         )}
 
-        {/* 线路详情卡片 - 路径规划打开时隐藏 */}
-        {highlightedLine && !showNavigation && (
-          <LineDetailCard
-            line={highlightedLine}
+      {/* 线路详情卡片 - 路径规划打开时隐藏 */}
+      {highlightedLine && !showNavigation && (
+        <LineDetailCard
+          line={highlightedLine}
             onClose={() => setHighlightedLine(null)}
             onStationClick={(_name, coord) => {
               const map = leafletMapRef.current;
@@ -315,6 +319,16 @@ function MapContainer() {
         )}
       </div>
 
+      {/* 右上角图层控制 */}
+      <div className="absolute top-4 right-4 z-[1000]">
+        <LayerControl
+          showRailway={showRailway}
+          showLandmark={showLandmark}
+          onToggleRailway={setShowRailway}
+          onToggleLandmark={setShowLandmark}
+        />
+      </div>
+
       {/* 路径高亮图层 */}
       {mapReady && leafletMapRef.current && projectionRef.current && routePath && routePath.length > 0 && (
         <RouteHighlightLayer
@@ -325,7 +339,7 @@ function MapContainer() {
       )}
 
       {/* 线路高亮图层 */}
-      {mapReady && leafletMapRef.current && projectionRef.current && highlightedLine && (
+      {mapReady && leafletMapRef.current && projectionRef.current && highlightedLine && showRailway && (
         <LineHighlightLayer
           map={leafletMapRef.current}
           projection={projectionRef.current}

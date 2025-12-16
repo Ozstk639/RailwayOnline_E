@@ -3,7 +3,7 @@
  * 在地图上渲染铁路线路和站点
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
 import type { ParsedLine, ParsedStation } from '@/types';
 import { fetchRailwayData, parseRailwayData } from '@/lib/railwayParser';
@@ -25,28 +25,45 @@ export function RailwayLayer({
   onStationClick,
 }: RailwayLayerProps) {
   const [lines, setLines] = useState<ParsedLine[]>([]);
-  const [layerGroup, setLayerGroup] = useState<L.LayerGroup | null>(null);
+  const layerGroupRef = useRef<L.LayerGroup | null>(null);
 
   // 加载铁路数据
   useEffect(() => {
+    let cancelled = false;
     async function loadData() {
+      // 先清空旧数据，避免切换世界时短暂显示上一世界的线路
+      setLines([]);
       const stations = await fetchRailwayData(worldId);
       const { lines } = parseRailwayData(stations);
-      setLines(lines);
+      if (!cancelled) setLines(lines);
     }
     loadData();
+    return () => {
+      cancelled = true;
+    };
   }, [worldId]);
 
-  // 渲染铁路图层
+  // 创建图层组（仅一次）
   useEffect(() => {
-    if (!map || lines.length === 0) return;
-
-    // 清除旧图层
-    if (layerGroup) {
-      map.removeLayer(layerGroup);
-    }
+    if (!map) return;
 
     const group = L.layerGroup();
+    layerGroupRef.current = group;
+    if (visible) group.addTo(map);
+
+    return () => {
+      group.remove();
+      if (layerGroupRef.current === group) layerGroupRef.current = null;
+    };
+  }, [map]);
+
+  // 渲染铁路图层内容（复用同一个图层组，避免可见性/世界切换时状态不同步）
+  useEffect(() => {
+    const group = layerGroupRef.current;
+    if (!group) return;
+
+    group.clearLayers();
+    if (lines.length === 0) return;
 
     // 渲染每条线路
     for (const line of lines) {
@@ -125,35 +142,23 @@ export function RailwayLayer({
         group.addLayer(marker);
       }
     }
-
-    setLayerGroup(group);
-
-    // 根据 visible 决定是否添加到地图
-    if (visible) {
-      group.addTo(map);
-    }
-
-    return () => {
-      if (group) {
-        map.removeLayer(group);
-      }
-    };
-  }, [map, lines, projection, onStationClick, visible]);
+  }, [lines, projection, onStationClick]);
 
   // 控制图层可见性
   useEffect(() => {
-    if (!layerGroup || !map) return;
+    const group = layerGroupRef.current;
+    if (!group || !map) return;
 
     if (visible) {
-      if (!map.hasLayer(layerGroup)) {
-        layerGroup.addTo(map);
+      if (!map.hasLayer(group)) {
+        group.addTo(map);
       }
     } else {
-      if (map.hasLayer(layerGroup)) {
-        map.removeLayer(layerGroup);
+      if (map.hasLayer(group)) {
+        map.removeLayer(group);
       }
     }
-  }, [visible, layerGroup, map]);
+  }, [visible, map]);
 
   return null;
 }
