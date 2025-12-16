@@ -1,26 +1,29 @@
 /**
  * 搜索组件
- * 支持搜索站点和地标
+ * 支持搜索站点、地标和线路
  */
 
 import { useState, useEffect, useRef } from 'react';
-import type { ParsedStation } from '@/types';
+import type { ParsedStation, ParsedLine } from '@/types';
 import type { ParsedLandmark } from '@/lib/landmarkParser';
 
 interface SearchResult {
-  type: 'station' | 'landmark';
+  type: 'station' | 'landmark' | 'line';
   name: string;
   coord: { x: number; y: number; z: number };
   extra?: string;  // 额外信息，如线路或等级
+  lineData?: ParsedLine;  // 线路数据（当 type 为 line 时）
 }
 
 interface SearchBarProps {
   stations: ParsedStation[];
   landmarks: ParsedLandmark[];
+  lines: ParsedLine[];
   onSelect: (result: SearchResult) => void;
+  onLineSelect?: (line: ParsedLine) => void;  // 线路选中回调
 }
 
-export function SearchBar({ stations, landmarks, onSelect }: SearchBarProps) {
+export function SearchBar({ stations, landmarks, lines, onSelect, onLineSelect }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -36,6 +39,33 @@ export function SearchBar({ stations, landmarks, onSelect }: SearchBarProps) {
 
     const searchQuery = query.toLowerCase();
     const matchedResults: SearchResult[] = [];
+
+    // 搜索线路（优先显示）
+    for (const line of lines) {
+      const lineId = line.lineId;
+      const lineName = `${line.bureau}局${line.line}号线`;
+      const lineNameAlt = `${line.bureau}-${line.line}`;
+
+      if (
+        lineId.toLowerCase().includes(searchQuery) ||
+        lineName.toLowerCase().includes(searchQuery) ||
+        lineNameAlt.toLowerCase().includes(searchQuery) ||
+        line.bureau.toLowerCase().includes(searchQuery) ||
+        line.line.toLowerCase().includes(searchQuery)
+      ) {
+        // 计算线路中点作为定位坐标
+        const midIndex = Math.floor(line.stations.length / 2);
+        const midStation = line.stations[midIndex] || line.stations[0];
+
+        matchedResults.push({
+          type: 'line',
+          name: lineName,
+          coord: midStation?.coord || { x: 0, y: 64, z: 0 },
+          extra: `${line.stations.length} 站`,
+          lineData: line,
+        });
+      }
+    }
 
     // 搜索站点
     for (const station of stations) {
@@ -62,8 +92,8 @@ export function SearchBar({ stations, landmarks, onSelect }: SearchBarProps) {
     }
 
     // 限制结果数量
-    setResults(matchedResults.slice(0, 10));
-  }, [query, stations, landmarks]);
+    setResults(matchedResults.slice(0, 15));
+  }, [query, stations, landmarks, lines]);
 
   // 点击外部关闭
   useEffect(() => {
@@ -78,6 +108,10 @@ export function SearchBar({ stations, landmarks, onSelect }: SearchBarProps) {
   }, []);
 
   const handleSelect = (result: SearchResult) => {
+    // 如果是线路，调用线路选中回调
+    if (result.type === 'line' && result.lineData && onLineSelect) {
+      onLineSelect(result.lineData);
+    }
     onSelect(result);
     setQuery('');
     setIsOpen(false);
@@ -100,7 +134,7 @@ export function SearchBar({ stations, landmarks, onSelect }: SearchBarProps) {
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
-          placeholder="搜索站点或地标..."
+          placeholder="搜索线路、站点或地标..."
           className="w-64 px-3 py-2 text-sm outline-none rounded-r-lg"
         />
       </div>
@@ -118,9 +152,11 @@ export function SearchBar({ stations, landmarks, onSelect }: SearchBarProps) {
               <span className={`text-xs px-1.5 py-0.5 rounded ${
                 result.type === 'station'
                   ? 'bg-blue-100 text-blue-700'
+                  : result.type === 'line'
+                  ? 'bg-orange-100 text-orange-700'
                   : 'bg-green-100 text-green-700'
               }`}>
-                {result.type === 'station' ? '站' : '标'}
+                {result.type === 'station' ? '站' : result.type === 'line' ? '线' : '标'}
               </span>
 
               {/* 名称和额外信息 */}

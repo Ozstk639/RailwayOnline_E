@@ -23,6 +23,8 @@ export interface DynmapTileLayerOptions extends L.TileLayerOptions {
 }
 
 export interface DynmapLatLngTileResult {
+  mapZoom: number;
+  tileZoom: number;
   coords: L.Coords;
   izoom: number;
   zoomoutlevel: number;
@@ -142,11 +144,23 @@ export class DynmapTileLayer extends L.TileLayer {
     return { x, y, z: zoom } as L.Coords;
   }
 
+  private clampTileZoom(zoom: number): number {
+    const rounded = Math.round(zoom);
+    const minNativeZoom = this.options.minNativeZoom;
+    const maxNativeZoom = this.options.maxNativeZoom;
+    if (typeof minNativeZoom === 'number' && rounded < minNativeZoom) return minNativeZoom;
+    if (typeof maxNativeZoom === 'number' && maxNativeZoom < rounded) return maxNativeZoom;
+    return rounded;
+  }
+
   /**
    * 用 LatLng 直接计算 Dynmap 的瓦片信息与 URL（与 Leaflet 实际取瓦片一致）。
+   *
+   * 注意：如果 mapZoom > maxNativeZoom（超采样放大），Leaflet 实际取瓦片会使用 clamp 后的 tileZoom。
    */
-  getDynmapTileForLatLng(latLng: L.LatLng, zoom: number): DynmapLatLngTileResult {
-    const coords = this.getCoordsForLatLng(latLng, zoom);
+  getDynmapTileForLatLng(latLng: L.LatLng, mapZoom: number): DynmapLatLngTileResult {
+    const tileZoom = this.clampTileZoom(mapZoom);
+    const coords = this.getCoordsForLatLng(latLng, tileZoom);
 
     const maxZoom = this.options.maxZoom || 6;
     const izoom = maxZoom - coords.z;
@@ -157,7 +171,7 @@ export class DynmapTileLayer extends L.TileLayer {
     const zoomPart = info.zoom ? `${info.zoom}_` : '';
     const url = `${this._baseUrl}${info.prefix}${info.nightday}/${info.scaledx}_${info.scaledy}/${zoomPart}${info.x}_${info.y}.${info.fmt}`;
 
-    return { coords, izoom, zoomoutlevel, scale, info, url };
+    return { mapZoom, tileZoom, coords, izoom, zoomoutlevel, scale, info, url };
   }
 
   /**
@@ -198,10 +212,12 @@ export function createDynmapTileLayer(
     baseUrl: `https://satellite.ria.red/map/_${worldId}/tiles/world/`,
     prefix: mapName,
     imageFormat: 'jpg',
-    extraZoomLevels: 1,  // mapzoomin
-    maxZoom: 6,          // mapzoomin(1) + mapzoomout(5)
-    // Dynmap: maxNativeZoom = mapzoomout（超过该级别只做前端放大，不改变取瓦片的 coords）
-    maxNativeZoom: 5,
+    // Dynmap 默认 mapzoomin=2（超采样）
+    extraZoomLevels: 2,
+    // maxZoom = mapzoomin(2) + mapzoomout(3)
+    maxZoom: 5,
+    // maxNativeZoom = mapzoomout（超过该级别只做前端放大）
+    maxNativeZoom: 3,
     minZoom: 0,
     nightAndDay: false,
     isNight: true,

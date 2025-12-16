@@ -25,6 +25,28 @@ export interface DynmapProjectionOptions {
   tilescale?: number;
 }
 
+function computeMapzoomoutFromScale(scale: number): number {
+  const s = Number(scale);
+  if (!Number.isFinite(s) || s <= 0) return 0;
+  return Math.floor(Math.log2(s)) + 1;
+}
+
+/**
+ * 从 worldToMap 矩阵粗略估计 basemodscale（flat/iso 均可用的近似）。
+ * 对应 Dynmap 的 basemodscale（每方块像素数）。
+ */
+export function estimateBaseModScale(worldToMap: number[]): number {
+  const candidates = [worldToMap[0], worldToMap[2], worldToMap[3], worldToMap[5]]
+    .map(v => Math.abs(Number(v)))
+    .filter(v => Number.isFinite(v));
+  const max = candidates.length ? Math.max(...candidates) : 0;
+  return max || 1;
+}
+
+export function deriveMapzoomout(worldToMap: number[]): number {
+  return computeMapzoomoutFromScale(estimateBaseModScale(worldToMap));
+}
+
 /**
  * Dynmap 投影类
  * 实现世界坐标和地图 LatLng 之间的转换
@@ -205,8 +227,10 @@ export const ZTH_FLAT_CONFIG: DynmapProjectionOptions = {
   worldToMap: [4, 0, 0, 0, 0, -4, 0, 1, 0],
   // maptoworld: [0.25, ~0, 0, 0, 0, 1, ~0, -0.25, 0]
   mapToWorld: [0.25, 0, 0, 0, 0, 1, 0, -0.25, 0],
-  mapzoomin: 1,
-  mapzoomout: 5,
+  // Dynmap 默认 mapzoomin=2（超采样放大 2 级）
+  mapzoomin: 2,
+  // mapzoomout 由 basemodscale(=4) 推导：floor(log2(4))+1 = 3
+  mapzoomout: deriveMapzoomout([4, 0, 0, 0, 0, -4, 0, 1, 0]),
   tileSize: 128,
   tilescale: 0
 };

@@ -6,6 +6,7 @@ import { DynmapTileLayer, createDynmapTileLayer } from '@/lib/DynmapTileLayer';
 import { RailwayLayer } from './RailwayLayer';
 import { LandmarkLayer } from './LandmarkLayer';
 import { RouteHighlightLayer } from './RouteHighlightLayer';
+import { LineHighlightLayer } from './LineHighlightLayer';
 import { WorldSwitcher } from './WorldSwitcher';
 import { SearchBar } from '../Search/SearchBar';
 import { NavigationPanel } from '../Navigation/NavigationPanel';
@@ -35,6 +36,7 @@ function MapContainer() {
   const [lines, setLines] = useState<ParsedLine[]>([]);
   const [landmarks, setLandmarks] = useState<ParsedLandmark[]>([]);
   const [routePath, setRoutePath] = useState<Array<{ coord: Coordinate }> | null>(null);
+  const [highlightedLine, setHighlightedLine] = useState<ParsedLine | null>(null);
 
   // 加载搜索数据
   useEffect(() => {
@@ -51,6 +53,7 @@ function MapContainer() {
 
       // 清除之前的路径
       setRoutePath(null);
+      setHighlightedLine(null);
     }
     loadSearchData();
   }, [currentWorld]);
@@ -65,9 +68,26 @@ function MapContainer() {
     map.setView(latLng, 5);  // 放大到 zoom 5
   }, []);
 
+  // 线路选中处理 - 高亮线路并调整视图
+  const handleLineSelect = useCallback((line: ParsedLine) => {
+    setHighlightedLine(line);
+    setRoutePath(null);  // 清除路径规划
+
+    const map = leafletMapRef.current;
+    const proj = projectionRef.current;
+    if (!map || !proj || line.stations.length === 0) return;
+
+    // 计算线路边界
+    const bounds = L.latLngBounds(
+      line.stations.map(s => proj.locationToLatLng(s.coord.x, s.coord.y || 64, s.coord.z))
+    );
+    map.fitBounds(bounds, { padding: [50, 50] });
+  }, []);
+
   // 导航路径找到时的处理
   const handleRouteFound = useCallback((path: Array<{ coord: Coordinate }>) => {
     setRoutePath(path);
+    setHighlightedLine(null);  // 清除线路高亮
 
     // 计算路径边界并调整地图视图
     const map = leafletMapRef.current;
@@ -155,7 +175,7 @@ function MapContainer() {
         const zoom = map.getZoom();
         const tile = (layer as any).getDynmapTileForLatLng(center, zoom);
         const mc = proj.latLngToLocation(center, 64);
-        console.log('[tile-debug]', { zoom, center, mc, tile: tile.info, url: tile.url });
+        console.log('[tile-debug]', { zoom, tileZoom: tile.tileZoom, center, mc, tile: tile.info, url: tile.url });
       };
       map.on('zoomend moveend', logTileDebug);
       logTileDebug();
@@ -234,7 +254,9 @@ function MapContainer() {
         <SearchBar
           stations={stations}
           landmarks={landmarks}
+          lines={lines}
           onSelect={handleSearchSelect}
+          onLineSelect={handleLineSelect}
         />
       </div>
 
@@ -287,6 +309,19 @@ function MapContainer() {
         </button>
       )}
 
+      {/* 清除线路高亮按钮 */}
+      {highlightedLine && !showNavigation && (
+        <button
+          onClick={() => setHighlightedLine(null)}
+          className="absolute bottom-8 right-4 z-[1000] bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          <span className="text-sm font-medium">清除高亮</span>
+        </button>
+      )}
+
       {/* 导航面板 */}
       {showNavigation && (
         <div className="absolute top-20 right-4 z-[1001]">
@@ -305,6 +340,15 @@ function MapContainer() {
           map={leafletMapRef.current}
           projection={projectionRef.current}
           path={routePath}
+        />
+      )}
+
+      {/* 线路高亮图层 */}
+      {mapReady && leafletMapRef.current && projectionRef.current && highlightedLine && (
+        <LineHighlightLayer
+          map={leafletMapRef.current}
+          projection={projectionRef.current}
+          line={highlightedLine}
         />
       )}
     </div>
