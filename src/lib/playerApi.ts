@@ -8,6 +8,7 @@ import type { Player } from '@/types';
 // 世界ID映射 (前端 -> API)
 const WORLD_MAP: Record<string, string> = {
   zth: '_zth',
+  eden: '_eden',
   naraku: '_naraku',
   houtu: '_houtu',
 };

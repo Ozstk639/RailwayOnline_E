@@ -29,6 +29,7 @@ import type { ParsedLandmark } from '@/lib/landmarkParser';
 // 世界配置
 const WORLDS = [
   { id: 'zth', name: '零洲', center: { x: -643, y: 35, z: -1562 } },
+  { id: 'eden', name: '伊甸', center: { x: 0, y: 64, z: 0 } },
   { id: 'naraku', name: '奈落洲', center: { x: 0, y: 64, z: 0 } },
   { id: 'houtu', name: '后土洲', center: { x: 0, y: 64, z: 0 } }
 ];
