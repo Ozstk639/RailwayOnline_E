@@ -43,7 +43,10 @@ export function SearchBar({ stations, landmarks, lines, onSelect, onLineSelect }
     // 搜索线路（优先显示）
     for (const line of lines) {
       const lineId = line.lineId;
-      const lineName = `${line.bureau}局${line.line}号线`;
+      // RMP 线路直接显示 line 名称，其他显示为 "X局Y号线"
+      const lineName = line.bureau === 'RMP'
+        ? line.line
+        : `${line.bureau}局${line.line}号线`;
       const lineNameAlt = `${line.bureau}-${line.line}`;
 
       if (

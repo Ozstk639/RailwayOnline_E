@@ -346,24 +346,24 @@ function MapContainer() {
       {/* 地图容器 */}
       <div ref={mapRef} className="w-full h-full" />
 
-      {/* 铁路图层 */}
+      {/* 铁路图层 - 有路径规划时隐藏 */}
       {mapReady && leafletMapRef.current && projectionRef.current && (
         <RailwayLayer
           map={leafletMapRef.current}
           projection={projectionRef.current}
           worldId={currentWorld}
-          visible={showRailway}
+          visible={showRailway && !(routePath && routePath.length > 0)}
           onStationClick={handleStationClick}
         />
       )}
 
-      {/* 地标图层 */}
+      {/* 地标图层 - 有路径规划时隐藏 */}
       {mapReady && leafletMapRef.current && projectionRef.current && (
         <LandmarkLayer
           map={leafletMapRef.current}
           projection={projectionRef.current}
           worldId={currentWorld}
-          visible={showLandmark}
+          visible={showLandmark && !(routePath && routePath.length > 0)}
           onLandmarkClick={handleLandmarkClick}
         />
       )}
@@ -435,9 +435,14 @@ function MapContainer() {
               selectedPoint={selectedPoint}
               nearbyStations={nearbyStations}
               nearbyLandmarks={nearbyLandmarks}
+              lines={lines}
               onClose={() => setSelectedPoint(null)}
               onStationClick={handleStationClick}
               onLandmarkClick={handleLandmarkClick}
+              onLineClick={(line) => {
+                setSelectedPoint(null);
+                handleLineSelect(line);
+              }}
             />
           );
         })()}

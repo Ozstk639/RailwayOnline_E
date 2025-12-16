@@ -281,7 +281,7 @@ export function parseRMPData(data: RMPData): {
         coord,
         stationCode: i + 1,
         isTransfer: isTransferStation(node),
-        lines: [lineId],
+        lines: [lineName],  // 使用线路名称而非 lineId
       };
 
       lineStations.push(station);
@@ -289,7 +289,7 @@ export function parseRMPData(data: RMPData): {
       // 更新全局站点索引
       if (allStationsMap.has(name)) {
         const existing = allStationsMap.get(name)!;
-        existing.lines = [...new Set([...existing.lines, lineId])];
+        existing.lines = [...new Set([...existing.lines, lineName])];
         existing.isTransfer = existing.lines.length > 1;
       } else {
         allStationsMap.set(name, { ...station });

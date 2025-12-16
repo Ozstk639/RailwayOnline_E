@@ -3,7 +3,7 @@
  * 展示选中站点或地标的详细信息及附近信息
  */
 
-import type { ParsedStation, Coordinate } from '@/types';
+import type { ParsedStation, Coordinate, ParsedLine } from '@/types';
 import type { ParsedLandmark, LandmarkCoord } from '@/lib/landmarkParser';
 
 interface PointDetailCardProps {
@@ -18,9 +18,12 @@ interface PointDetailCardProps {
   // 附近的站点和地标
   nearbyStations: ParsedStation[];
   nearbyLandmarks: ParsedLandmark[];
+  // 所有线路（用于点击跳转）
+  lines?: ParsedLine[];
   onClose: () => void;
   onStationClick?: (station: ParsedStation) => void;
   onLandmarkClick?: (landmark: ParsedLandmark) => void;
+  onLineClick?: (line: ParsedLine) => void;
 }
 
 // 计算两点间距离
@@ -34,11 +37,34 @@ export function PointDetailCard({
   selectedPoint,
   nearbyStations,
   nearbyLandmarks,
+  lines,
   onClose,
   onStationClick,
   onLandmarkClick,
+  onLineClick,
 }: PointDetailCardProps) {
   const isStation = selectedPoint.type === 'station';
+
+  // 根据 lineId 或 line 名称查找线路数据
+  const findLine = (lineIdOrName: string): ParsedLine | undefined => {
+    // 先按 lineId 查找
+    let line = lines?.find(l => l.lineId === lineIdOrName);
+    // 如果找不到，按 line 名称查找
+    if (!line) {
+      line = lines?.find(l => l.line === lineIdOrName);
+    }
+    return line;
+  };
+
+  // 格式化线路显示名称
+  const formatLineName = (lineIdOrName: string): string => {
+    const line = findLine(lineIdOrName);
+    if (line) {
+      return line.bureau === 'RMP' ? line.line : `${line.bureau}-${line.line}`;
+    }
+    // 如果找不到线路，直接返回原名称（可能已经是中文名）
+    return lineIdOrName;
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-lg w-72 max-h-[60vh] flex flex-col">
@@ -83,11 +109,18 @@ export function PointDetailCard({
             <div className="text-sm text-gray-600">
               <div className="font-medium text-gray-800 mb-1">所属线路</div>
               <div className="flex flex-wrap gap-1">
-                {selectedPoint.station.lines.map((lineId, idx) => (
-                  <span key={idx} className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">
-                    {lineId}
-                  </span>
-                ))}
+                {selectedPoint.station.lines.map((lineId, idx) => {
+                  const line = findLine(lineId);
+                  return (
+                    <button
+                      key={idx}
+                      className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs hover:bg-blue-200 transition-colors"
+                      onClick={() => line && onLineClick?.(line)}
+                    >
+                      {formatLineName(lineId)}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
