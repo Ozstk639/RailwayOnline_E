@@ -9,6 +9,11 @@
   background: #1a1a2e;
 }
 
+/* 地图瓦片半透明 - 直接降低瓦片透明度 */
+.leaflet-tile-pane {
+  opacity: 0.5;
+}
+
 /* 确保地图占满屏幕 */
 html, body, #root {
   margin: 0;

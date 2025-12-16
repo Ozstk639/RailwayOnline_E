@@ -13,6 +13,7 @@ import { NavigationPanel } from '../Navigation/NavigationPanel';
 import { LineDetailCard } from '../LineDetail/LineDetailCard';
 import { Toolbar, LayerControl } from '../Toolbar/Toolbar';
 import { fetchRailwayData, parseRailwayData, getAllStations } from '@/lib/railwayParser';
+import { fetchRMPData, parseRMPData } from '@/lib/rmpParser';
 import { fetchLandmarkData, parseLandmarkData } from '@/lib/landmarkParser';
 import type { ParsedStation, ParsedLine, Coordinate } from '@/types';
 import type { ParsedLandmark } from '@/lib/landmarkParser';
@@ -23,6 +24,11 @@ const WORLDS = [
   { id: 'naraku', name: '奈落洲', center: { x: 0, y: 64, z: 0 } },
   { id: 'houtu', name: '后土洲', center: { x: 0, y: 64, z: 0 } }
 ];
+
+// RMP 数据文件映射
+const RMP_DATA_FILES: Record<string, string> = {
+  zth: '/data/rmp_zth.json',
+};
 
 function MapContainer() {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -50,11 +56,32 @@ function MapContainer() {
   // 加载搜索数据
   useEffect(() => {
     async function loadSearchData() {
-      // 加载站点数据
+      // 加载 RIA_Data 站点数据
       const railwayData = await fetchRailwayData(currentWorld);
-      const { lines: parsedLines } = parseRailwayData(railwayData);
-      setLines(parsedLines);
-      setStations(getAllStations(parsedLines));
+      const { lines: riaLines } = parseRailwayData(railwayData);
+
+      // 加载 RMP 数据（如果有）
+      let rmpLines: ParsedLine[] = [];
+      let rmpStations: ParsedStation[] = [];
+      const rmpFile = RMP_DATA_FILES[currentWorld];
+      if (rmpFile) {
+        try {
+          const rmpData = await fetchRMPData(rmpFile);
+          const parsed = parseRMPData(rmpData);
+          rmpLines = parsed.lines;
+          rmpStations = parsed.stations;
+        } catch (e) {
+          console.warn(`Failed to load RMP data for ${currentWorld}:`, e);
+        }
+      }
+
+      // 合并线路和站点
+      const allLines = [...riaLines, ...rmpLines];
+      const riaStations = getAllStations(riaLines);
+      const allStations = [...riaStations, ...rmpStations];
+
+      setLines(allLines);
+      setStations(allStations);
 
       // 加载地标数据
       const landmarkData = await fetchLandmarkData(currentWorld);
@@ -233,6 +260,9 @@ function MapContainer() {
     <div className="relative w-full h-full">
       {/* 地图容器 */}
       <div ref={mapRef} className="w-full h-full" />
+
+      {/* 白色遮罩层 - 在瓦片之上、线路之下 */}
+      <div className="map-overlay" />
 
       {/* 铁路图层 */}
       {mapReady && leafletMapRef.current && projectionRef.current && (

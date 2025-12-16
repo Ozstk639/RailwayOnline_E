@@ -7,7 +7,13 @@ import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
 import type { ParsedLine, ParsedStation } from '@/types';
 import { fetchRailwayData, parseRailwayData } from '@/lib/railwayParser';
+import { fetchRMPData, parseRMPData } from '@/lib/rmpParser';
 import { DynmapProjection } from '@/lib/DynmapProjection';
+
+// RMP 数据文件映射
+const RMP_DATA_FILES: Record<string, string> = {
+  zth: '/data/rmp_zth.json',
+};
 
 interface RailwayLayerProps {
   map: L.Map;
@@ -27,15 +33,34 @@ export function RailwayLayer({
   const [lines, setLines] = useState<ParsedLine[]>([]);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
 
-  // 加载铁路数据
+  // 加载铁路数据（RIA_Data + RMP）
   useEffect(() => {
     let cancelled = false;
     async function loadData() {
       // 先清空旧数据，避免切换世界时短暂显示上一世界的线路
       setLines([]);
+
+      // 加载 RIA_Data 数据
       const stations = await fetchRailwayData(worldId);
-      const { lines } = parseRailwayData(stations);
-      if (!cancelled) setLines(lines);
+      const { lines: riaLines } = parseRailwayData(stations);
+
+      // 加载 RMP 数据（如果有）
+      let rmpLines: ParsedLine[] = [];
+      const rmpFile = RMP_DATA_FILES[worldId];
+      if (rmpFile) {
+        try {
+          const rmpData = await fetchRMPData(rmpFile);
+          const parsed = parseRMPData(rmpData);
+          rmpLines = parsed.lines;
+        } catch (e) {
+          console.warn(`Failed to load RMP data for ${worldId}:`, e);
+        }
+      }
+
+      // 合并两个数据源的线路
+      if (!cancelled) {
+        setLines([...riaLines, ...rmpLines]);
+      }
     }
     loadData();
     return () => {
