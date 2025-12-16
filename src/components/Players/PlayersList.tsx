@@ -85,6 +85,7 @@ export function PlayersList({
               <PlayerItem
                 key={player.name}
                 player={player}
+                worldId={worldId}
                 onSelect={onPlayerSelect}
                 onNavigate={onNavigateToPlayer}
               />
@@ -99,12 +100,13 @@ export function PlayersList({
 // 玩家列表项组件
 interface PlayerItemProps {
   player: Player;
+  worldId: string;
   onSelect?: (player: Player) => void;
   onNavigate?: (player: Player) => void;
 }
 
-function PlayerItem({ player, onSelect, onNavigate }: PlayerItemProps) {
-  const avatarUrl = getPlayerAvatarUrl(player.name, 32);
+function PlayerItem({ player, worldId, onSelect, onNavigate }: PlayerItemProps) {
+  const avatarUrl = getPlayerAvatarUrl(player.name, 32, worldId);
 
   // 生命值百分比
   const healthPercent = (player.health / 20) * 100;

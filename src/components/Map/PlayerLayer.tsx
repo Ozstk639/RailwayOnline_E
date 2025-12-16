@@ -11,20 +11,20 @@ import { DynmapProjection } from '@/lib/DynmapProjection';
 
 /**
  * 获取玩家头像 URL (从 Dynmap)
- * 格式: https://satellite.ria.red/map/_eden/tiles/faces/{size}x{size}/{playerName}.png
+ * 格式: https://satellite.ria.red/map/_{worldId}/tiles/faces/{size}x{size}/{playerName}.png
  * 支持的尺寸: 16x16, 32x32
  */
-function getPlayerAvatarUrl(playerName: string, size: number = 32): string {
+function getPlayerAvatarUrl(playerName: string, size: number = 32, worldId: string = 'zth'): string {
   // Dynmap 只支持 16x16 和 32x32，选择最接近的
   const tileSize = size <= 16 ? 16 : 32;
-  return `https://satellite.ria.red/map/_eden/tiles/faces/${tileSize}x${tileSize}/${encodeURIComponent(playerName)}.png`;
+  return `https://satellite.ria.red/map/_${worldId}/tiles/faces/${tileSize}x${tileSize}/${encodeURIComponent(playerName)}.png`;
 }
 
 /**
  * 创建玩家头像 HTML (圆形头像带边框)
  */
-function createPlayerAvatarHtml(playerName: string, size: number = 32): string {
-  const avatarUrl = getPlayerAvatarUrl(playerName, size);
+function createPlayerAvatarHtml(playerName: string, size: number = 32, worldId: string = 'zth'): string {
+  const avatarUrl = getPlayerAvatarUrl(playerName, size, worldId);
   return `
     <div style="
       width: ${size}px;
@@ -129,7 +129,7 @@ export function PlayerLayer({
       const markerSize = 32;
       const markerIcon = L.divIcon({
         className: 'player-avatar-icon',
-        html: createPlayerAvatarHtml(player.name, markerSize),
+        html: createPlayerAvatarHtml(player.name, markerSize, worldId),
         iconSize: [markerSize + 6, markerSize + 6], // 加上边框尺寸
         iconAnchor: [(markerSize + 6) / 2, (markerSize + 6) / 2],
       });
@@ -156,7 +156,7 @@ export function PlayerLayer({
 
       group.addLayer(marker);
     }
-  }, [players, projection, onPlayerClick]);
+  }, [players, projection, onPlayerClick, worldId]);
 
   // 控制图层可见性
   useEffect(() => {
