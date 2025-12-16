@@ -16,11 +16,13 @@ import { PointDetailCard } from '../PointDetail/PointDetailCard';
 import { PlayerDetailCard } from '../PlayerDetail/PlayerDetailCard';
 import { Toolbar, LayerControl, AboutCard } from '../Toolbar/Toolbar';
 import { LinesPage } from '../Lines/LinesPage';
+import { PlayersList } from '../Players/PlayersList';
 import { LoadingOverlay } from '../Loading/LoadingOverlay';
 import { useLoadingStore } from '@/store/loadingStore';
 import { fetchRailwayData, parseRailwayData, getAllStations } from '@/lib/railwayParser';
 import { fetchRMPData, parseRMPData } from '@/lib/rmpParser';
 import { fetchLandmarkData, parseLandmarkData } from '@/lib/landmarkParser';
+import { fetchPlayers } from '@/lib/playerApi';
 import type { ParsedStation, ParsedLine, Coordinate, Player } from '@/types';
 import type { ParsedLandmark } from '@/lib/landmarkParser';
 
@@ -49,10 +51,12 @@ function MapContainer() {
   const [dimBackground, setDimBackground] = useState(false);
   const [showNavigation, setShowNavigation] = useState(false);
   const [showLinesPage, setShowLinesPage] = useState(false);
+  const [showPlayersPage, setShowPlayersPage] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [stations, setStations] = useState<ParsedStation[]>([]);
   const [lines, setLines] = useState<ParsedLine[]>([]);
   const [landmarks, setLandmarks] = useState<ParsedLandmark[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [routePath, setRoutePath] = useState<Array<{ coord: Coordinate }> | null>(null);
   const [highlightedLine, setHighlightedLine] = useState<ParsedLine | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<{
@@ -142,6 +146,10 @@ function MapContainer() {
       const landmarkData = await fetchLandmarkData(currentWorld);
       setLandmarks(parseLandmarkData(landmarkData));
       if (isFirstLoad) updateStage('landmark', 'success');
+
+      // 加载玩家数据
+      const playersData = await fetchPlayers(currentWorld);
+      setPlayers(playersData);
 
       // 清除之前的路径
       setRoutePath(null);
@@ -455,6 +463,7 @@ function MapContainer() {
         <Toolbar
           onNavigationClick={() => setShowNavigation(true)}
           onLinesClick={() => setShowLinesPage(true)}
+          onPlayersClick={() => setShowPlayersPage(true)}
           onHelpClick={() => setShowAbout(true)}
         />
 
@@ -469,6 +478,7 @@ function MapContainer() {
             stations={stations}
             lines={lines}
             landmarks={landmarks}
+            players={players}
             onRouteFound={handleRouteFound}
             onClose={() => setShowNavigation(false)}
             onPointClick={(coord) => {
@@ -585,6 +595,23 @@ function MapContainer() {
           onLineSelect={(line) => {
             setShowLinesPage(false);
             handleLineSelect(line);
+          }}
+        />
+      )}
+
+      {/* 玩家列表页面 */}
+      {showPlayersPage && (
+        <PlayersList
+          worldId={currentWorld}
+          onBack={() => setShowPlayersPage(false)}
+          onPlayerSelect={(player) => {
+            setShowPlayersPage(false);
+            handlePlayerClick(player);
+          }}
+          onNavigateToPlayer={() => {
+            setShowPlayersPage(false);
+            // 打开导航面板
+            setShowNavigation(true);
           }}
         />
       )}

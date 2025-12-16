@@ -3,17 +3,19 @@
  * 包含路径规划等快捷功能图标
  */
 
-import { Navigation, List, HelpCircle, Train, Home, Moon, X, User } from 'lucide-react';
+import { Navigation, List, HelpCircle, Train, Home, Moon, X, User, Users } from 'lucide-react';
 
 interface ToolbarProps {
   onNavigationClick: () => void;
   onLinesClick: () => void;
+  onPlayersClick: () => void;
   onHelpClick: () => void;
 }
 
 export function Toolbar({
   onNavigationClick,
   onLinesClick,
+  onPlayersClick,
   onHelpClick,
 }: ToolbarProps) {
   return (
@@ -41,6 +43,18 @@ export function Toolbar({
         <List className="w-5 h-5" />
         <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs bg-gray-800 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
           线路列表
+        </span>
+      </button>
+
+      {/* 在线玩家 */}
+      <button
+        onClick={onPlayersClick}
+        className="p-2 rounded-lg hover:bg-cyan-50 text-gray-600 hover:text-cyan-600 transition-colors group relative"
+        title="在线玩家"
+      >
+        <Users className="w-5 h-5" />
+        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs bg-gray-800 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          在线玩家
         </span>
       </button>
 

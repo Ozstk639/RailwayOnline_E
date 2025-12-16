@@ -5,8 +5,8 @@
  */
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { X, ArrowUpDown, Train, Home, Footprints } from 'lucide-react';
-import type { ParsedStation, ParsedLine, Coordinate } from '@/types';
+import { X, ArrowUpDown, Train, Home, Footprints, User } from 'lucide-react';
+import type { ParsedStation, ParsedLine, Coordinate, Player } from '@/types';
 import type { ParsedLandmark } from '@/lib/landmarkParser';
 import { buildRailwayGraph, findShortestPath, simplifyPath, PathResult } from '@/lib/pathfinding';
 
@@ -14,6 +14,7 @@ interface NavigationPanelProps {
   stations: ParsedStation[];
   lines: ParsedLine[];
   landmarks: ParsedLandmark[];
+  players?: Player[];  // 在线玩家列表
   onRouteFound?: (path: Array<{ coord: Coordinate }>) => void;
   onClose: () => void;
   onPointClick?: (coord: Coordinate) => void;  // 点击起点/终点跳转
@@ -21,7 +22,7 @@ interface NavigationPanelProps {
 
 // 搜索项类型
 interface SearchItem {
-  type: 'station' | 'landmark';
+  type: 'station' | 'landmark' | 'player';
   name: string;
   coord: Coordinate;
 }
@@ -128,17 +129,21 @@ function PointSearchInput({ value, onChange, items, placeholder, label }: PointS
             >
               {/* 类型图标 */}
               <span className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                item.type === 'station' ? 'bg-blue-500 text-white' : 'bg-orange-500 text-white'
+                item.type === 'station' ? 'bg-blue-500 text-white' :
+                item.type === 'player' ? 'bg-cyan-500 text-white' :
+                'bg-orange-500 text-white'
               }`}>
                 {item.type === 'station' ? (
                   <Train className="w-3 h-3" />
+                ) : item.type === 'player' ? (
+                  <User className="w-3 h-3" />
                 ) : (
                   <Home className="w-3 h-3" />
                 )}
               </span>
               <span>{item.name}</span>
               <span className="text-xs text-gray-400 ml-auto">
-                {item.type === 'station' ? '站点' : '地标'}
+                {item.type === 'station' ? '站点' : item.type === 'player' ? '玩家' : '地标'}
               </span>
             </button>
           ))}
@@ -175,6 +180,7 @@ export function NavigationPanel({
   stations,
   lines,
   landmarks,
+  players = [],
   onRouteFound,
   onClose,
   onPointClick,
@@ -200,7 +206,7 @@ export function NavigationPanel({
     return station?.coord || null;
   };
 
-  // 构建搜索项列表（站点 + 地标）
+  // 构建搜索项列表（站点 + 地标 + 玩家）
   const searchItems = useMemo(() => {
     const items: SearchItem[] = [];
 
@@ -228,8 +234,17 @@ export function NavigationPanel({
       }
     }
 
+    // 添加在线玩家
+    for (const player of players) {
+      items.push({
+        type: 'player',
+        name: player.name,
+        coord: { x: player.x, y: player.y, z: player.z },
+      });
+    }
+
     return items;
-  }, [stations, landmarks]);
+  }, [stations, landmarks, players]);
 
   // 搜索路径
   const handleSearch = () => {
@@ -255,7 +270,7 @@ export function NavigationPanel({
       if (startPoint.type === 'station') {
         startStation = stations.find(s => s.name === startPoint.name) || null;
       } else {
-        // 地标：找最近站点
+        // 地标或玩家：找最近站点
         startStation = findNearestStation(startPoint.coord, stations);
         if (startStation) {
           walkStartDist = getDistance(startPoint.coord, startStation.coord);
@@ -265,7 +280,7 @@ export function NavigationPanel({
       if (endPoint.type === 'station') {
         endStation = stations.find(s => s.name === endPoint.name) || null;
       } else {
-        // 地标：找最近站点
+        // 地标或玩家：找最近站点
         endStation = findNearestStation(endPoint.coord, stations);
         if (endStation) {
           walkEndDist = getDistance(endPoint.coord, endStation.coord);

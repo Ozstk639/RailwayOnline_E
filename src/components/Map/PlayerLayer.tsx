@@ -1,6 +1,6 @@
 /**
  * 玩家图层组件
- * 在地图上渲染在线玩家位置
+ * 在地图上渲染在线玩家位置（显示玩家头像）
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -8,10 +8,38 @@ import * as L from 'leaflet';
 import type { Player } from '@/types';
 import { fetchPlayers } from '@/lib/playerApi';
 import { DynmapProjection } from '@/lib/DynmapProjection';
-import { createMapMarkerHtml } from '@/components/Icons';
 
-// 玩家图标颜色
-const PLAYER_COLOR = '#06b6d4'; // cyan-500
+/**
+ * 获取玩家头像 URL (从 LittleSkin)
+ */
+function getPlayerAvatarUrl(playerName: string, size: number = 32): string {
+  return `https://littleskin.cn/avatar/player/${encodeURIComponent(playerName)}?size=${size}`;
+}
+
+/**
+ * 创建玩家头像 HTML (圆形头像带边框)
+ */
+function createPlayerAvatarHtml(playerName: string, size: number = 32): string {
+  const avatarUrl = getPlayerAvatarUrl(playerName, size);
+  return `
+    <div style="
+      width: ${size}px;
+      height: ${size}px;
+      border-radius: 50%;
+      border: 3px solid #06b6d4;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      overflow: hidden;
+      background: #1e293b;
+    ">
+      <img
+        src="${avatarUrl}"
+        alt="${playerName}"
+        style="width: 100%; height: 100%; object-fit: cover;"
+        onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%2306b6d4%22><circle cx=%2212%22 cy=%228%22 r=%225%22/><path d=%22M20 21a8 8 0 0 0-16 0%22/></svg>'"
+      />
+    </div>
+  `;
+}
 
 interface PlayerLayerProps {
   map: L.Map;
@@ -93,13 +121,13 @@ export function PlayerLayer({
 
       const latLng = projection.locationToLatLng(player.x, player.y, player.z);
 
-      // 创建玩家图标
-      const markerSize = 28;
+      // 创建玩家头像图标
+      const markerSize = 32;
       const markerIcon = L.divIcon({
-        className: 'player-marker-icon',
-        html: createMapMarkerHtml('player', PLAYER_COLOR, markerSize),
-        iconSize: [markerSize, markerSize],
-        iconAnchor: [markerSize / 2, markerSize / 2],
+        className: 'player-avatar-icon',
+        html: createPlayerAvatarHtml(player.name, markerSize),
+        iconSize: [markerSize + 6, markerSize + 6], // 加上边框尺寸
+        iconAnchor: [(markerSize + 6) / 2, (markerSize + 6) / 2],
       });
 
       const marker = L.marker(latLng, { icon: markerIcon });
@@ -144,5 +172,8 @@ export function PlayerLayer({
 
   return null;
 }
+
+// 导出获取头像 URL 函数供其他组件使用
+export { getPlayerAvatarUrl };
 
 export default PlayerLayer;
