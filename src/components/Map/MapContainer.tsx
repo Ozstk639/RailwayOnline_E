@@ -134,7 +134,7 @@ function MapContainer() {
         if (isFirstLoad) updateStage('rmp', 'loading');
         try {
           const rmpData = await fetchRMPData(rmpFile);
-          const parsed = parseRMPData(rmpData);
+          const parsed = parseRMPData(rmpData, currentWorld);
           rmpLines = parsed.lines;
           rmpStations = parsed.stations;
           if (isFirstLoad) updateStage('rmp', 'success');

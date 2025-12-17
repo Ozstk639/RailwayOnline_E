@@ -51,7 +51,7 @@ export function RailwayLayer({
       if (rmpFile) {
         try {
           const rmpData = await fetchRMPData(rmpFile);
-          const parsed = parseRMPData(rmpData);
+          const parsed = parseRMPData(rmpData, worldId);
           rmpLines = parsed.lines;
         } catch (e) {
           console.warn(`Failed to load RMP data for ${worldId}:`, e);

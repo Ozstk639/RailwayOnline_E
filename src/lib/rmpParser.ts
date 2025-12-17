@@ -79,15 +79,30 @@ interface RMPData {
   version?: string;
 }
 
+// 不同世界的坐标转换配置
+interface CoordTransformConfig {
+  scale: number;      // 坐标缩放比例
+  offset: number;     // 坐标偏移量（转换前）
+  multiplier: number; // 最终乘数
+}
+
+const WORLD_COORD_CONFIGS: Record<string, CoordTransformConfig> = {
+  // 零洲: (coord + 0.05) * 10
+  zth: { scale: 1, offset: 0.05, multiplier: 10 },
+  // 后土: coord * 4 (1:4 比例)
+  houtu: { scale: 1, offset: 0, multiplier: 4 },
+};
+
+const DEFAULT_COORD_CONFIG: CoordTransformConfig = { scale: 1, offset: 0.05, multiplier: 10 };
+
 /**
  * RMP 坐标转换为游戏坐标
- * 公式: (coord + 0.05) * 10
  */
-function rmpToGameCoord(x: number, y: number): Coordinate {
+function rmpToGameCoord(x: number, y: number, config: CoordTransformConfig = DEFAULT_COORD_CONFIG): Coordinate {
   return {
-    x: (x + 0.05) * 10,
+    x: (x * config.scale + config.offset) * config.multiplier,
     y: 64,  // 默认Y高度
-    z: (y + 0.05) * 10,  // RMP的y对应游戏的z
+    z: (y * config.scale + config.offset) * config.multiplier,  // RMP的y对应游戏的z
   };
 }
 
@@ -169,12 +184,15 @@ function getLineBadges(nodes: RMPNode[]): Map<string, { name: string; color: str
 
 /**
  * 解析 RMP 数据
+ * @param data RMP 数据
+ * @param worldId 世界ID，用于确定坐标转换配置
  */
-export function parseRMPData(data: RMPData): {
+export function parseRMPData(data: RMPData, worldId: string = 'zth'): {
   lines: ParsedLine[];
   stations: ParsedStation[];
 } {
   const { nodes, edges } = data.graph;
+  const coordConfig = WORLD_COORD_CONFIGS[worldId] || DEFAULT_COORD_CONFIG;
 
   // 建立节点索引
   const nodeMap = new Map<string, RMPNode>();
@@ -274,7 +292,7 @@ export function parseRMPData(data: RMPData): {
       const name = getStationName(node);
       if (!name) continue;
 
-      const coord = rmpToGameCoord(node.attributes.x, node.attributes.y);
+      const coord = rmpToGameCoord(node.attributes.x, node.attributes.y, coordConfig);
 
       const station: ParsedStation = {
         name,

@@ -53,7 +53,7 @@ export function LinesPage({ onBack, onLineSelect }: LinesPageProps) {
       if (rmpFile) {
         try {
           const rmpData = await fetchRMPData(rmpFile);
-          const parsed = parseRMPData(rmpData);
+          const parsed = parseRMPData(rmpData, currentWorld);
           rmpLines = parsed.lines;
         } catch (e) {
           console.warn(`Failed to load RMP data:`, e);
