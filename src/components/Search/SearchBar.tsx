@@ -196,7 +196,7 @@ export function SearchBar({ stations, landmarks, lines, onSelect, onLineSelect }
 
       {/* 无结果提示 */}
       {isOpen && query.length > 0 && results.length === 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg p-3 text-sm text-gray-500">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg p-3 text-sm text-gray-500 z-50">
           未找到匹配结果
         </div>
       )}
