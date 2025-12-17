@@ -171,7 +171,13 @@ export function buildRailwayGraph(
 
         // 检查上行方向是否被阻止
         if (!blockedDirs?.has('up') && graph.has(prevKey)) {
-          const distance = calculateDistance(station.coord, prev.coord);
+          // 优先使用 edgePath 中的预计算长度
+          let distance: number;
+          if (line.edgePaths && line.edgePaths[i - 1]) {
+            distance = line.edgePaths[i - 1].length;
+          } else {
+            distance = calculateDistance(station.coord, prev.coord);
+          }
           node.neighbors.push({
             stationName: prev.name,
             lineId: line.lineId,
@@ -206,7 +212,13 @@ export function buildRailwayGraph(
             }
           } else {
             // 正常连接下一站
-            const distance = calculateDistance(station.coord, next.coord);
+            // 优先使用 edgePath 中的预计算长度
+            let distance: number;
+            if (line.edgePaths && line.edgePaths[i]) {
+              distance = line.edgePaths[i].length;
+            } else {
+              distance = calculateDistance(station.coord, next.coord);
+            }
             node.neighbors.push({
               stationName: next.name,
               lineId: line.lineId,

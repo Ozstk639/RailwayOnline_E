@@ -6,7 +6,51 @@
 import { useEffect, useRef } from 'react';
 import * as L from 'leaflet';
 import type { DynmapProjection } from '@/lib/DynmapProjection';
-import type { ParsedLine } from '@/types';
+import type { ParsedLine, PathSegment } from '@/types';
+
+/**
+ * 采样二次贝塞尔曲线为折线点
+ */
+function sampleQuadraticBezier(
+  p0: L.LatLng,
+  p1: L.LatLng,
+  p2: L.LatLng,
+  segments: number = 8
+): L.LatLng[] {
+  const points: L.LatLng[] = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const mt = 1 - t;
+    points.push(
+      L.latLng(
+        mt * mt * p0.lat + 2 * mt * t * p1.lat + t * t * p2.lat,
+        mt * mt * p0.lng + 2 * mt * t * p1.lng + t * t * p2.lng
+      )
+    );
+  }
+  return points;
+}
+
+/**
+ * 将路径段转换为 LatLng 数组
+ */
+function segmentToLatLngs(
+  segment: PathSegment,
+  projection: DynmapProjection
+): L.LatLng[] {
+  if (segment.type === 'line') {
+    return segment.points.map(p =>
+      projection.locationToLatLng(p.x, p.y, p.z)
+    );
+  } else if (segment.type === 'quadratic') {
+    const [p0, p1, p2] = segment.points;
+    const latLng0 = projection.locationToLatLng(p0.x, p0.y, p0.z);
+    const latLng1 = projection.locationToLatLng(p1.x, p1.y, p1.z);
+    const latLng2 = projection.locationToLatLng(p2.x, p2.y, p2.z);
+    return sampleQuadraticBezier(latLng0, latLng1, latLng2);
+  }
+  return [];
+}
 
 interface LineHighlightLayerProps {
   map: L.Map;
@@ -26,26 +70,46 @@ export function LineHighlightLayer({
     const layerGroup = L.layerGroup().addTo(map);
     layerGroupRef.current = layerGroup;
 
-    // 转换坐标
-    const latLngs = line.stations.map(s =>
+    // 转换站点坐标（用于站点标记）
+    const stationLatLngs = line.stations.map(s =>
       projection.locationToLatLng(s.coord.x, s.coord.y || 64, s.coord.z)
     );
 
-    if (latLngs.length < 2) return;
+    if (stationLatLngs.length < 2) return;
 
-    // 绘制线路主体（使用线路颜色，加粗显示）
-    const mainPath = L.polyline(latLngs, {
-      color: line.color,
-      weight: 5,
-      opacity: 1,
-      lineCap: 'round',
-      lineJoin: 'round',
-    });
-    layerGroup.addLayer(mainPath);
+    // 绘制线路主体
+    if (line.edgePaths && line.edgePaths.length > 0) {
+      // 使用曲线渲染
+      for (const edgePath of line.edgePaths) {
+        for (const segment of edgePath.segments) {
+          const latLngs = segmentToLatLngs(segment, projection);
+          if (latLngs.length >= 2) {
+            const path = L.polyline(latLngs, {
+              color: line.color,
+              weight: 5,
+              opacity: 1,
+              lineCap: 'round',
+              lineJoin: 'round',
+            });
+            layerGroup.addLayer(path);
+          }
+        }
+      }
+    } else {
+      // 回退到直线渲染
+      const mainPath = L.polyline(stationLatLngs, {
+        color: line.color,
+        weight: 5,
+        opacity: 1,
+        lineCap: 'round',
+        lineJoin: 'round',
+      });
+      layerGroup.addLayer(mainPath);
+    }
 
     // 添加站点标记
     line.stations.forEach((station, index) => {
-      const latLng = latLngs[index];
+      const latLng = stationLatLngs[index];
       const isTerminal = index === 0 || index === line.stations.length - 1;
 
       const marker = L.circleMarker(latLng, {

@@ -3,7 +3,13 @@
  * 将 RMP 导出的 JSON 转换为地图可用的线路数据
  */
 
-import type { ParsedLine, ParsedStation, Coordinate } from '@/types';
+import type { ParsedLine, ParsedStation, Coordinate, EdgePath } from '@/types';
+import {
+  calculatePerpendicularPath,
+  calculateDiagonalPath,
+  calculateSimplePath,
+  calculateStraightPath,
+} from './rmpPathCalculator';
 
 // RMP 节点类型
 interface RMPNode {
@@ -63,8 +69,30 @@ interface RMPEdge {
     'single-color'?: {
       color: string[];
     };
+    'mrt-under-constr'?: {
+      color: string[];
+    };
+    'bjsubway-dotted'?: {
+      color: string[];
+    };
     reconcileId?: string;
     parallelIndex?: number;
+    // 三种边类型的配置
+    perpendicular?: {
+      startFrom: 'from' | 'to';
+      offsetFrom: number;
+      offsetTo: number;
+      roundCornerFactor: number;
+    };
+    diagonal?: {
+      startFrom: 'from' | 'to';
+      offsetFrom: number;
+      offsetTo: number;
+      roundCornerFactor: number;
+    };
+    simple?: {
+      offset: number;
+    };
   };
 }
 
@@ -215,23 +243,33 @@ export function parseRMPData(data: RMPData, worldId: string = 'zth'): {
     linesByColor.get(color)!.push(edge);
   }
 
-  // 构建邻接表，用于排序站点
-  const buildAdjacency = (edges: RMPEdge[]): Map<string, Set<string>> => {
+  // 构建邻接表，用于排序站点，同时保存边信息
+  const buildAdjacencyWithEdges = (edges: RMPEdge[]): {
+    adj: Map<string, Set<string>>;
+    edgeMap: Map<string, RMPEdge>;
+  } => {
     const adj = new Map<string, Set<string>>();
+    const edgeMap = new Map<string, RMPEdge>();
     for (const edge of edges) {
       if (!adj.has(edge.source)) adj.set(edge.source, new Set());
       if (!adj.has(edge.target)) adj.set(edge.target, new Set());
       adj.get(edge.source)!.add(edge.target);
       adj.get(edge.target)!.add(edge.source);
+      // 保存边信息（双向）
+      edgeMap.set(`${edge.source}->${edge.target}`, edge);
+      edgeMap.set(`${edge.target}->${edge.source}`, edge);
     }
-    return adj;
+    return { adj, edgeMap };
   };
 
-  // DFS 遍历获取有序站点列表
-  const getOrderedStations = (edges: RMPEdge[]): string[] => {
-    if (edges.length === 0) return [];
+  // DFS 遍历获取有序站点列表，同时返回边的顺序
+  const getOrderedStationsWithEdges = (edges: RMPEdge[]): {
+    orderedNodes: string[];
+    orderedEdges: RMPEdge[];
+  } => {
+    if (edges.length === 0) return { orderedNodes: [], orderedEdges: [] };
 
-    const adj = buildAdjacency(edges);
+    const { adj, edgeMap } = buildAdjacencyWithEdges(edges);
 
     // 找到端点（只有一个邻居的节点）作为起点
     let startNode = edges[0].source;
@@ -244,23 +282,74 @@ export function parseRMPData(data: RMPData, worldId: string = 'zth'): {
 
     // DFS 遍历
     const visited = new Set<string>();
-    const ordered: string[] = [];
+    const orderedNodes: string[] = [];
+    const orderedEdges: RMPEdge[] = [];
 
-    const dfs = (node: string) => {
+    const dfs = (node: string, prevNode: string | null) => {
       if (visited.has(node)) return;
       visited.add(node);
-      ordered.push(node);
+      orderedNodes.push(node);
+
+      // 如果有前一个节点，记录这条边
+      if (prevNode) {
+        const edge = edgeMap.get(`${prevNode}->${node}`);
+        if (edge) {
+          orderedEdges.push(edge);
+        }
+      }
 
       const neighbors = adj.get(node) || new Set();
       for (const neighbor of neighbors) {
         if (!visited.has(neighbor)) {
-          dfs(neighbor);
+          dfs(neighbor, node);
         }
       }
     };
 
-    dfs(startNode);
-    return ordered;
+    dfs(startNode, null);
+    return { orderedNodes, orderedEdges };
+  };
+
+  /**
+   * 计算两个节点之间的边路径
+   */
+  const calculateEdgePath = (
+    fromNode: RMPNode,
+    toNode: RMPNode,
+    edge: RMPEdge,
+    coordConfig: CoordTransformConfig
+  ): EdgePath => {
+    const from = { x: fromNode.attributes.x, y: fromNode.attributes.y };
+    const to = { x: toNode.attributes.x, y: toNode.attributes.y };
+
+    // 判断边的方向是否需要反转
+    const isReversed = edge.target === fromNode.key;
+
+    const edgeType = edge.attributes.type;
+
+    if (edgeType === 'perpendicular' && edge.attributes.perpendicular) {
+      const config = edge.attributes.perpendicular;
+      // 如果方向反转，需要调整 startFrom
+      const adjustedConfig = isReversed
+        ? { ...config, startFrom: config.startFrom === 'from' ? 'to' as const : 'from' as const }
+        : config;
+      return calculatePerpendicularPath(from, to, adjustedConfig, coordConfig);
+    }
+
+    if (edgeType === 'diagonal' && edge.attributes.diagonal) {
+      const config = edge.attributes.diagonal;
+      const adjustedConfig = isReversed
+        ? { ...config, startFrom: config.startFrom === 'from' ? 'to' as const : 'from' as const }
+        : config;
+      return calculateDiagonalPath(from, to, adjustedConfig, coordConfig);
+    }
+
+    if (edgeType === 'simple' && edge.attributes.simple) {
+      return calculateSimplePath(from, to, edge.attributes.simple, coordConfig);
+    }
+
+    // 回退到直线
+    return calculateStraightPath(from, to, coordConfig);
   };
 
   // 构建线路数据
@@ -269,15 +358,19 @@ export function parseRMPData(data: RMPData, worldId: string = 'zth'): {
   let lineIndex = 1;
 
   for (const [color, colorEdges] of linesByColor) {
-    // 获取有序节点列表
-    const orderedNodeKeys = getOrderedStations(colorEdges);
+    // 获取有序节点列表和边
+    const { orderedNodes: orderedNodeKeys, orderedEdges } = getOrderedStationsWithEdges(colorEdges);
 
-    // 过滤出实际站点（排除虚拟节点）
-    const stationNodes = orderedNodeKeys
-      .map(key => nodeMap.get(key))
-      .filter((node): node is RMPNode => node !== undefined && isStationNode(node));
+    // 过滤出实际站点（排除虚拟节点），同时记录原始索引
+    const stationNodesWithIndex: { node: RMPNode; originalIndex: number }[] = [];
+    for (let i = 0; i < orderedNodeKeys.length; i++) {
+      const node = nodeMap.get(orderedNodeKeys[i]);
+      if (node && isStationNode(node)) {
+        stationNodesWithIndex.push({ node, originalIndex: i });
+      }
+    }
 
-    if (stationNodes.length < 2) continue;
+    if (stationNodesWithIndex.length < 2) continue;
 
     // 获取线路名称
     const badge = lineBadges.get(color);
@@ -287,8 +380,8 @@ export function parseRMPData(data: RMPData, worldId: string = 'zth'): {
     // 构建站点列表
     const lineStations: ParsedStation[] = [];
 
-    for (let i = 0; i < stationNodes.length; i++) {
-      const node = stationNodes[i];
+    for (let i = 0; i < stationNodesWithIndex.length; i++) {
+      const { node } = stationNodesWithIndex[i];
       const name = getStationName(node);
       if (!name) continue;
 
@@ -315,12 +408,54 @@ export function parseRMPData(data: RMPData, worldId: string = 'zth'): {
     }
 
     if (lineStations.length >= 2) {
+      // 计算站点之间的边路径
+      const edgePaths: EdgePath[] = [];
+      for (let i = 0; i < stationNodesWithIndex.length - 1; i++) {
+        const { node: fromNode, originalIndex: fromIdx } = stationNodesWithIndex[i];
+        const { node: toNode, originalIndex: toIdx } = stationNodesWithIndex[i + 1];
+
+        // 找到这两个站点之间的所有边（可能有多个虚拟节点）
+        // 合并中间所有边的路径
+        const combinedSegments: EdgePath['segments'] = [];
+        let totalLength = 0;
+
+        // 遍历从 fromIdx 到 toIdx-1 的所有边
+        for (let edgeIdx = fromIdx; edgeIdx < toIdx; edgeIdx++) {
+          const edge = orderedEdges[edgeIdx];
+          if (edge) {
+            const fromKey = orderedNodeKeys[edgeIdx];
+            const toKey = orderedNodeKeys[edgeIdx + 1];
+            const fromNodeForEdge = nodeMap.get(fromKey);
+            const toNodeForEdge = nodeMap.get(toKey);
+
+            if (fromNodeForEdge && toNodeForEdge) {
+              const path = calculateEdgePath(fromNodeForEdge, toNodeForEdge, edge, coordConfig);
+              combinedSegments.push(...path.segments);
+              totalLength += path.length;
+            }
+          }
+        }
+
+        // 如果没有找到边，使用直线
+        if (combinedSegments.length === 0) {
+          const path = calculateStraightPath(
+            { x: fromNode.attributes.x, y: fromNode.attributes.y },
+            { x: toNode.attributes.x, y: toNode.attributes.y },
+            coordConfig
+          );
+          edgePaths.push(path);
+        } else {
+          edgePaths.push({ segments: combinedSegments, length: totalLength });
+        }
+      }
+
       lines.push({
         bureau: 'RMP',
         line: lineName,
         lineId,
         stations: lineStations,
         color,
+        edgePaths,
       });
       lineIndex++;
     }

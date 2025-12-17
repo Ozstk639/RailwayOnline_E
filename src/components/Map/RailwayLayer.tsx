@@ -5,10 +5,54 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
-import type { ParsedLine, ParsedStation, BureausConfig } from '@/types';
+import type { ParsedLine, ParsedStation, BureausConfig, PathSegment } from '@/types';
 import { fetchRailwayData, parseRailwayData, getBureauName } from '@/lib/railwayParser';
 import { fetchRMPData, parseRMPData } from '@/lib/rmpParser';
 import { DynmapProjection } from '@/lib/DynmapProjection';
+
+/**
+ * 采样二次贝塞尔曲线为折线点
+ */
+function sampleQuadraticBezier(
+  p0: L.LatLng,
+  p1: L.LatLng,
+  p2: L.LatLng,
+  segments: number = 8
+): L.LatLng[] {
+  const points: L.LatLng[] = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const mt = 1 - t;
+    points.push(
+      L.latLng(
+        mt * mt * p0.lat + 2 * mt * t * p1.lat + t * t * p2.lat,
+        mt * mt * p0.lng + 2 * mt * t * p1.lng + t * t * p2.lng
+      )
+    );
+  }
+  return points;
+}
+
+/**
+ * 将路径段转换为 LatLng 数组
+ */
+function segmentToLatLngs(
+  segment: PathSegment,
+  projection: DynmapProjection
+): L.LatLng[] {
+  if (segment.type === 'line') {
+    return segment.points.map(p =>
+      projection.locationToLatLng(p.x, p.y, p.z)
+    );
+  } else if (segment.type === 'quadratic') {
+    const [p0, p1, p2] = segment.points;
+    const latLng0 = projection.locationToLatLng(p0.x, p0.y, p0.z);
+    const latLng1 = projection.locationToLatLng(p1.x, p1.y, p1.z);
+    const latLng2 = projection.locationToLatLng(p2.x, p2.y, p2.z);
+    return sampleQuadraticBezier(latLng0, latLng1, latLng2);
+  }
+  return [];
+}
 
 // RMP 数据文件映射
 const RMP_DATA_FILES: Record<string, string> = {
@@ -93,24 +137,45 @@ export function RailwayLayer({
 
     // 渲染每条线路
     for (const line of lines) {
-      // 转换坐标
-      const latLngs = line.stations.map(station =>
-        projection.locationToLatLng(station.coord.x, station.coord.y, station.coord.z)
-      );
+      // 如果有 edgePaths，使用曲线渲染
+      if (line.edgePaths && line.edgePaths.length > 0) {
+        // 绘制所有边的路径
+        for (const edgePath of line.edgePaths) {
+          for (const segment of edgePath.segments) {
+            const latLngs = segmentToLatLngs(segment, projection);
+            if (latLngs.length >= 2) {
+              const polyline = L.polyline(latLngs, {
+                color: line.color,
+                weight: 3,
+                opacity: 0.8,
+              });
+              polyline.bindTooltip(`${line.bureau}-${line.line}`, {
+                permanent: false,
+                direction: 'center',
+              });
+              group.addLayer(polyline);
+            }
+          }
+        }
+      } else {
+        // 回退到直线渲染（RIA_Data 或无 edgePaths 的情况）
+        const latLngs = line.stations.map(station =>
+          projection.locationToLatLng(station.coord.x, station.coord.y, station.coord.z)
+        );
 
-      // 绘制线路
-      const polyline = L.polyline(latLngs, {
-        color: line.color,
-        weight: 3,
-        opacity: 0.8,
-      });
+        const polyline = L.polyline(latLngs, {
+          color: line.color,
+          weight: 3,
+          opacity: 0.8,
+        });
 
-      polyline.bindTooltip(`${line.bureau}-${line.line}`, {
-        permanent: false,
-        direction: 'center',
-      });
+        polyline.bindTooltip(`${line.bureau}-${line.line}`, {
+          permanent: false,
+          direction: 'center',
+        });
 
-      group.addLayer(polyline);
+        group.addLayer(polyline);
+      }
 
       // 绘制站点
       for (const station of line.stations) {

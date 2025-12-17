@@ -68,6 +68,21 @@ export interface Landmark {
   coordinates: Coordinate | 'Unknown';
 }
 
+// 路径段类型
+export type PathSegmentType = 'line' | 'quadratic';
+
+// 路径段（用于弯道渲染）
+export interface PathSegment {
+  type: PathSegmentType;
+  points: Coordinate[];  // line: [start, end], quadratic: [start, control, end]
+}
+
+// 边的路径数据
+export interface EdgePath {
+  segments: PathSegment[];
+  length: number;  // 预计算的路径长度
+}
+
 // 解析后的线路数据（用于绘制）
 export interface ParsedLine {
   bureau: string;
@@ -75,6 +90,7 @@ export interface ParsedLine {
   lineId: string;  // bureau-line 组合
   stations: ParsedStation[];
   color: string;
+  edgePaths?: EdgePath[];  // 站点之间的路径数据，长度为 stations.length - 1
 }
 
 // 解析后的站点数据
