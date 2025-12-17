@@ -110,6 +110,7 @@ export function AboutCard({ onClose }: AboutCardProps) {
             </div>
             <div>秋月白</div>
             <div>FY_杨</div>
+            <div>暗夜</div>
             <div>
               <a href="https://ria-data.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
                 莉亚数据开放平台
