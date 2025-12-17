@@ -13,6 +13,7 @@ import { DynmapProjection } from '@/lib/DynmapProjection';
 // RMP 数据文件映射
 const RMP_DATA_FILES: Record<string, string> = {
   zth: '/data/rmp_zth.json',
+  houtu: '/data/rmp_houtu.json',
 };
 
 interface RailwayLayerProps {
