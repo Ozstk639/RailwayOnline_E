@@ -207,6 +207,10 @@ export function AboutCard({ onClose }: AboutCardProps) {
           <span>Venti_Lynn</span>
         </div>
         <div>
+          <span className="font-medium text-gray-500">测绘/测量控件：</span>
+          <span>Ozstk639</span>
+        </div>
+        <div>
           <span className="font-medium text-gray-800">数据来源：</span>
           <div className="mt-1 space-y-0.5 text-gray-500">
             <div>

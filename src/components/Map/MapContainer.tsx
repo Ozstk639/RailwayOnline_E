@@ -513,7 +513,7 @@ function MapContainer() {
       <div className="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-auto z-[1000] flex flex-col gap-2 sm:max-w-[300px]">
         {/* 标题和世界切换 */}
         <div className="bg-white/90 px-3 py-2 sm:px-4 rounded-lg shadow-lg">
-          <h1 className="text-base sm:text-lg font-bold text-gray-800">RIA 铁路在线地图</h1>
+          <h1 className="text-base sm:text-lg font-bold text-gray-800">RIA 在线地图</h1>
           <WorldSwitcher
             worlds={WORLDS}
             currentWorld={currentWorld}
