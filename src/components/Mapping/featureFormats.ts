@@ -438,12 +438,36 @@ export const getSubTypeOptions = (mode: DrawMode): FeatureKey[] => {
     .filter(k => FORMAT_REGISTRY[k].modes.includes(mode));
 };
 
+// 导出时坐标统一整数化（不影响内存中编辑精度，仅影响输出）
+const roundXZDeep = (v: any): any => {
+  if (Array.isArray(v)) return v.map(roundXZDeep);
+
+  if (v && typeof v === 'object') {
+    // 常见 {x,z} 坐标对象
+    if (typeof v.x === 'number' && typeof v.z === 'number') {
+      const out: any = { ...v };
+      out.x = Math.round(v.x);
+      out.z = Math.round(v.z);
+      return out;
+    }
+
+    const out: any = {};
+    for (const [k, val] of Object.entries(v)) {
+      out[k] = roundXZDeep(val);
+    }
+    return out;
+  }
+
+  return v;
+};
+
 // 导出单图层 JSON（统一出口）
 export const layerToJsonText = (layer: { jsonInfo?: { featureInfo: any } }): string => {
   const fi = layer.jsonInfo?.featureInfo;
   if (!fi) return '';
-  return JSON.stringify([fi], null, 2);
+  return JSON.stringify([roundXZDeep(fi)], null, 2);
 };
+
 
 // 点线面文本坐标解析（用于导入）
 export const parseCoordListFlexible = (raw: string): Coord2D[] | null => {
