@@ -1,0 +1,1558 @@
+[
+  {
+    "plfRoundID": "ZRT4PFB_01",
+    "plfRoundName": "北庭站",
+    "LineID": "ZRT4_01B",
+    "Flrpoints": [
+      [
+        7450.5,
+        -63,
+        3942.5
+      ],
+      [
+        7450.5,
+        -63,
+        3990.5
+      ],
+      [
+        7468.5,
+        -63,
+        3990.5
+      ],
+      [
+        7468.5,
+        -63,
+        3942.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_02",
+    "plfRoundName": "山滨站",
+    "LineID": "ZRT4_01B",
+    "Flrpoints": [
+      [
+        7060.5,
+        -63,
+        4183.5
+      ],
+      [
+        7060.5,
+        -63,
+        4203.5
+      ],
+      [
+        7094.5,
+        -63,
+        4203.5
+      ],
+      [
+        7094.5,
+        -63,
+        4183.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_SB",
+    "staBuildingName": "山滨站",
+    "Conpoints": [
+      [
+        7060.5,
+        -63,
+        4183.5
+      ],
+      [
+        7060.5,
+        -63,
+        4203.5
+      ],
+      [
+        7094.5,
+        -63,
+        4203.5
+      ],
+      [
+        7094.5,
+        -63,
+        4219
+      ],
+      [
+        7135.5,
+        -63,
+        4219
+      ],
+      [
+        7135.5,
+        -63,
+        4203
+      ],
+      [
+        7098.5,
+        -63,
+        4203
+      ],
+      [
+        7098.5,
+        -63,
+        4200
+      ],
+      [
+        7098.5,
+        -63,
+        4198
+      ],
+      [
+        7094.5,
+        -63,
+        4198
+      ],
+      [
+        7094.5,
+        -63,
+        4183.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_02"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_03",
+    "plfRoundName": "旧城站",
+    "LineID": "ZRT4_01B",
+    "Flrpoints": [
+      [
+        6783.5,
+        -63,
+        4350.5
+      ],
+      [
+        6783.5,
+        -63,
+        4386.5
+      ],
+      [
+        6803.5,
+        -63,
+        4386.5
+      ],
+      [
+        6803.5,
+        -63,
+        4350.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_JC",
+    "staBuildingName": "旧城站",
+    "Conpoints": [
+      [
+        6783.5,
+        -63,
+        4350.5
+      ],
+      [
+        6783.5,
+        -63,
+        4387.5
+      ],
+      [
+        6779.5,
+        -63,
+        4387.5
+      ],
+      [
+        6779.5,
+        -63,
+        4407.5
+      ],
+      [
+        6807.5,
+        -63,
+        4407.5
+      ],
+      [
+        6807.5,
+        -63,
+        4387.5
+      ],
+      [
+        6803.5,
+        -63,
+        4387.5
+      ],
+      [
+        6803.5,
+        -63,
+        4350.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_03"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_04",
+    "plfRoundName": "杉林站",
+    "LineID": "ZRT4_01B",
+    "Flrpoints": [
+      [
+        6508.5,
+        -63,
+        4605.5
+      ],
+      [
+        6508.5,
+        -63,
+        4625.5
+      ],
+      [
+        6534.5,
+        -63,
+        4625.5
+      ],
+      [
+        6534.5,
+        -63,
+        4605.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_SL",
+    "staBuildingName": "杉林站",
+    "Conpoints": [
+      [
+        6508.5,
+        -63,
+        4605.5
+      ],
+      [
+        6508.5,
+        -63,
+        4625.5
+      ],
+      [
+        6534.5,
+        -63,
+        4625.5
+      ],
+      [
+        6534.5,
+        -63,
+        4605.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_04"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_05",
+    "plfRoundName": "天门站",
+    "LineID": "ZRT4_01B",
+    "Flrpoints": [
+      [
+        5866.5,
+        -64,
+        4605.5
+      ],
+      [
+        5892.5,
+        -64,
+        4605.5
+      ],
+      [
+        5892.5,
+        -64,
+        4625.5
+      ],
+      [
+        5866.5,
+        -64,
+        4625.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_TM",
+    "staBuildingName": "天门站",
+    "Conpoints": [
+      [
+        5866.5,
+        -63,
+        4605.5
+      ],
+      [
+        5866.5,
+        -63,
+        4625.5
+      ],
+      [
+        5881.5,
+        -63,
+        4625.5
+      ],
+      [
+        5881.5,
+        -63,
+        4648.5
+      ],
+      [
+        5897.5,
+        -63,
+        4648.5
+      ],
+      [
+        5897.5,
+        -63,
+        4640.5
+      ],
+      [
+        5905.5,
+        -63,
+        4640.5
+      ],
+      [
+        5905.5,
+        -63,
+        4634.5
+      ],
+      [
+        5897.5,
+        -63,
+        4634.5
+      ],
+      [
+        5897.5,
+        -63,
+        4625.5
+      ],
+      [
+        5892.5,
+        -63,
+        4625.5
+      ],
+      [
+        5892.5,
+        -63,
+        4605.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_05"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_06",
+    "plfRoundName": "湾北站",
+    "LineID": "ZRT4_01B",
+    "Flrpoints": [
+      [
+        5751.5,
+        -64,
+        4605.5
+      ],
+      [
+        5751.5,
+        -64,
+        4625.5
+      ],
+      [
+        5715.5,
+        -64,
+        4625.5
+      ],
+      [
+        5715.5,
+        -64,
+        4605.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_WB",
+    "staBuildingName": "湾北站",
+    "Conpoints": [
+      [
+        5751.5,
+        -64,
+        4605.5
+      ],
+      [
+        5751.5,
+        -64,
+        4625.5
+      ],
+      [
+        5715.5,
+        -64,
+        4625.5
+      ],
+      [
+        5715.5,
+        -64,
+        4605.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_06"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_07",
+    "plfRoundName": "沁洄川站",
+    "LineID": "ZRT4_01A",
+    "Flrpoints": [
+      [
+        5472.5,
+        -64,
+        4626.5
+      ],
+      [
+        5436.5,
+        -64,
+        4626.5
+      ],
+      [
+        5436.5,
+        -64,
+        4604.5
+      ],
+      [
+        5472.5,
+        -64,
+        4604.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_08",
+    "plfRoundName": "北溯工站",
+    "LineID": "ZRT4_01A",
+    "Flrpoints": [
+      [
+        5281.5,
+        -63,
+        4626.5
+      ],
+      [
+        5311.5,
+        -63,
+        4626.5
+      ],
+      [
+        5311.5,
+        -63,
+        4605.5
+      ],
+      [
+        5281.5,
+        -63,
+        4605.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_BSG",
+    "staBuildingName": "北溯工站",
+    "Conpoints": [
+      [
+        5280.5,
+        -63,
+        4597.5
+      ],
+      [
+        5280.5,
+        -63,
+        4604.5
+      ],
+      [
+        5279.5,
+        -63,
+        4604.5
+      ],
+      [
+        5279.5,
+        -63,
+        4611.5
+      ],
+      [
+        5281.5,
+        -63,
+        4611.5
+      ],
+      [
+        5281.5,
+        -63,
+        4626.5
+      ],
+      [
+        5311.5,
+        -63,
+        4626.5
+      ],
+      [
+        5311.5,
+        -63,
+        4611.5
+      ],
+      [
+        5313.5,
+        -63,
+        4611.5
+      ],
+      [
+        5313.5,
+        -63,
+        4604.5
+      ],
+      [
+        5312.5,
+        -63,
+        4604.5
+      ],
+      [
+        5312.5,
+        -63,
+        4597.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_08"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_09",
+    "plfRoundName": "原央站",
+    "LineID": "ZRT4_01A",
+    "Flrpoints": [
+      [
+        5154.5,
+        -63,
+        4605.5
+      ],
+      [
+        5154.5,
+        -63,
+        4624.5
+      ],
+      [
+        5117.5,
+        -63,
+        4624.5
+      ],
+      [
+        5117.5,
+        -63,
+        4605.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_YY",
+    "staBuildingName": "原央站",
+    "Conpoints": [
+      [
+        5128.5,
+        -63,
+        4604.5
+      ],
+      [
+        5128.5,
+        -63,
+        4605.5
+      ],
+      [
+        5117.5,
+        -63,
+        4605.5
+      ],
+      [
+        5117.5,
+        -63,
+        4625.5
+      ],
+      [
+        5118.5,
+        -63,
+        4625.5
+      ],
+      [
+        5118.5,
+        -63,
+        4638.5
+      ],
+      [
+        5128.5,
+        -63,
+        4638.5
+      ],
+      [
+        5128.5,
+        -63,
+        4637.5
+      ],
+      [
+        5148.5,
+        -63,
+        4637.5
+      ],
+      [
+        5148.5,
+        -63,
+        4624.5
+      ],
+      [
+        5154.5,
+        -63,
+        4624.5
+      ],
+      [
+        5154.5,
+        -63,
+        4605.5
+      ],
+      [
+        5148.5,
+        -63,
+        4605.5
+      ],
+      [
+        5148.5,
+        -63,
+        4604.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_09"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_10",
+    "plfRoundName": "白霖站",
+    "LineID": "ZRT4_01A",
+    "Flrpoints": [
+      [
+        4897.5,
+        -63,
+        4607.5
+      ],
+      [
+        4897.5,
+        -63,
+        4623.5
+      ],
+      [
+        4925.5,
+        -63,
+        4623.5
+      ],
+      [
+        4925.5,
+        -63,
+        4607.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_11",
+    "plfRoundName": "三灯站",
+    "LineID": "ZRT4_01A",
+    "Flrpoints": [
+      [
+        4545.5,
+        -63,
+        4791.5
+      ],
+      [
+        4545.5,
+        -63,
+        4845.5
+      ],
+      [
+        4571.5,
+        -63,
+        4845.5
+      ],
+      [
+        4571.5,
+        -63,
+        4791.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_12",
+    "plfRoundName": "四叶海岸站",
+    "LineID": "ZRT4_01A",
+    "Flrpoints": [
+      [
+        4543.5,
+        -63,
+        5439.5
+      ],
+      [
+        4543.5,
+        -63,
+        5477.5
+      ],
+      [
+        4573.5,
+        -63,
+        5477.5
+      ],
+      [
+        4573.5,
+        -63,
+        5439.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639",
+    "ModifityTime": "20251225",
+    "ModifityBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_SYHA",
+    "staBuildingName": "四叶海岸站",
+    "Conpoints": [
+      [
+        4543.5,
+        -63,
+        5439.5
+      ],
+      [
+        4543.5,
+        -63,
+        5477.5
+      ],
+      [
+        4573.5,
+        -63,
+        5477.5
+      ],
+      [
+        4573.5,
+        -63,
+        5439.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_12"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_13",
+    "plfRoundName": "格兰南角站",
+    "LineID": "ZRT4_01A",
+    "Flrpoints": [
+      [
+        4545.5,
+        -63,
+        5799.5
+      ],
+      [
+        4545.5,
+        -63,
+        5835.5
+      ],
+      [
+        4571.5,
+        -63,
+        5835.5
+      ],
+      [
+        4571.5,
+        -63,
+        5799.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639",
+    "ModifityTime": "20251225",
+    "ModifityBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_GLNJ",
+    "staBuildingName": "格兰南角站",
+    "Conpoints": [
+      [
+        4545.5,
+        -63,
+        5799.5
+      ],
+      [
+        4545.5,
+        -63,
+        5835.5
+      ],
+      [
+        4571.5,
+        -63,
+        5835.5
+      ],
+      [
+        4571.5,
+        -63,
+        5799.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_13"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639",
+    "ModifityTime": "20251225",
+    "ModifityBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_14",
+    "plfRoundName": "白令运河站",
+    "LineID": "ZRT4_01A",
+    "Flrpoints": [
+      [
+        4545.5,
+        -63,
+        6024.5
+      ],
+      [
+        4545.5,
+        -63,
+        6060.5
+      ],
+      [
+        4571.5,
+        -63,
+        6060.5
+      ],
+      [
+        4571.5,
+        -63,
+        6024.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_BLYH",
+    "staBuildingName": "白令运河站",
+    "Conpoints": [
+      [
+        4545.5,
+        -63,
+        6024.5
+      ],
+      [
+        4545.5,
+        -63,
+        6060.5
+      ],
+      [
+        4571.5,
+        -63,
+        6060.5
+      ],
+      [
+        4571.5,
+        -63,
+        6024.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_14"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_15",
+    "plfRoundName": "快乐小镇站",
+    "LineID": "ZRT4_01A",
+    "Flrpoints": [
+      [
+        3699.5,
+        -63,
+        6164.5
+      ],
+      [
+        3699.5,
+        -63,
+        6186.5
+      ],
+      [
+        3737.5,
+        -63,
+        6186.5
+      ],
+      [
+        3737.5,
+        -63,
+        6164.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_KLXJ",
+    "staBuildingName": "快乐小镇站",
+    "Conpoints": [
+      [
+        3699.5,
+        -63,
+        6164.5
+      ],
+      [
+        3699.5,
+        -63,
+        6186.5
+      ],
+      [
+        3737.5,
+        -63,
+        6186.5
+      ],
+      [
+        3737.5,
+        -63,
+        6164.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_15"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_16",
+    "plfRoundName": "岭上神社站",
+    "LineID": "ZRT4_01A",
+    "Flrpoints": [
+      [
+        3404.5,
+        -63,
+        6164.5
+      ],
+      [
+        3404.5,
+        -63,
+        6186.5
+      ],
+      [
+        3446.5,
+        -63,
+        6186.5
+      ],
+      [
+        3446.5,
+        -63,
+        6164.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_LSSS",
+    "staBuildingName": "岭上神社站",
+    "Conpoints": [
+      [
+        3404.5,
+        -63,
+        6164.5
+      ],
+      [
+        3404.5,
+        -63,
+        6186.5
+      ],
+      [
+        3446.5,
+        -63,
+        6186.5
+      ],
+      [
+        3446.5,
+        -63,
+        6164.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_16"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_17",
+    "plfRoundName": "岭上西站",
+    "LineID": "ZRT4_01C",
+    "Flrpoints": [
+      [
+        3007.5,
+        -63,
+        6387.5
+      ],
+      [
+        3007.5,
+        -63,
+        6423.5
+      ],
+      [
+        3027.5,
+        -63,
+        6423.5
+      ],
+      [
+        3027.5,
+        -63,
+        6387.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_LSW",
+    "staBuildingName": "岭上西站",
+    "Conpoints": [
+      [
+        3007.5,
+        -63,
+        6387.5
+      ],
+      [
+        3007.5,
+        -63,
+        6423.5
+      ],
+      [
+        3027.5,
+        -63,
+        6423.5
+      ],
+      [
+        3027.5,
+        -63,
+        6387.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_17"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_18",
+    "plfRoundName": "幕沼站",
+    "LineID": "ZRT4_01C",
+    "Flrpoints": [
+      [
+        2867.5,
+        -63,
+        6632.5
+      ],
+      [
+        2867.5,
+        -63,
+        6652.5
+      ],
+      [
+        2903.5,
+        -63,
+        6652.5
+      ],
+      [
+        2903.5,
+        -63,
+        6632.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_MZ",
+    "staBuildingName": "幕沼站",
+    "Conpoints": [
+      [
+        2867.5,
+        -63,
+        6632.5
+      ],
+      [
+        2867.5,
+        -63,
+        6652.5
+      ],
+      [
+        2903.5,
+        -63,
+        6652.5
+      ],
+      [
+        2903.5,
+        -63,
+        6632.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_18"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_19",
+    "plfRoundName": "白给二号站",
+    "LineID": "ZRT4_01C",
+    "Flrpoints": [
+      [
+        2148.5,
+        -63,
+        6632.5
+      ],
+      [
+        2148.5,
+        -63,
+        6652.5
+      ],
+      [
+        2183.5,
+        -63,
+        6652.5
+      ],
+      [
+        2183.5,
+        -63,
+        6632.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_BGEH",
+    "staBuildingName": "白给二号站",
+    "Conpoints": [
+      [
+        2148.5,
+        -63,
+        6632.5
+      ],
+      [
+        2148.5,
+        -63,
+        6652.5
+      ],
+      [
+        2183.5,
+        -63,
+        6652.5
+      ],
+      [
+        2183.5,
+        -63,
+        6632.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_19"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_20",
+    "plfRoundName": "星台站",
+    "LineID": "ZRT4_01C",
+    "Flrpoints": [
+      [
+        1922.5,
+        -63,
+        6756.5
+      ],
+      [
+        1922.5,
+        -63,
+        6790.5
+      ],
+      [
+        1940.5,
+        -63,
+        6790.5
+      ],
+      [
+        1940.5,
+        -63,
+        6756.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_XT",
+    "staBuildingName": "星台站",
+    "Conpoints": [
+      [
+        1922.5,
+        -63,
+        6756.5
+      ],
+      [
+        1922.5,
+        -63,
+        6790.5
+      ],
+      [
+        1940.5,
+        -63,
+        6790.5
+      ],
+      [
+        1940.5,
+        -63,
+        6756.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_20"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_21",
+    "plfRoundName": "连东站",
+    "LineID": "ZRT4_01C",
+    "Flrpoints": [
+      [
+        1809.5,
+        -63,
+        7050.5
+      ],
+      [
+        1809.5,
+        -63,
+        7064.5
+      ],
+      [
+        1847.5,
+        -63,
+        7064.5
+      ],
+      [
+        1847.5,
+        -63,
+        7050.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_22",
+    "plfRoundName": "连西站",
+    "LineID": "ZRT4_01C",
+    "Flrpoints": [
+      [
+        1539.5,
+        -63,
+        7050.5
+      ],
+      [
+        1539.5,
+        -63,
+        7064.5
+      ],
+      [
+        1577.5,
+        -63,
+        7064.5
+      ],
+      [
+        1577.5,
+        -63,
+        7050.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT4PFB_23",
+    "plfRoundName": "新桥站",
+    "LineID": "ZRT4_01C",
+    "Flrpoints": [
+      [
+        1241.5,
+        -63,
+        6861.5
+      ],
+      [
+        1241.5,
+        -63,
+        6877.5
+      ],
+      [
+        1285.5,
+        -63,
+        6877.5
+      ],
+      [
+        1285.5,
+        -63,
+        6861.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_XQ",
+    "staBuildingName": "新桥站",
+    "Conpoints": [
+      [
+        1241.5,
+        -63,
+        6861.5
+      ],
+      [
+        1241.5,
+        -63,
+        6877.5
+      ],
+      [
+        1285.5,
+        -63,
+        6877.5
+      ],
+      [
+        1285.5,
+        -63,
+        6861.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT4STA_23"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  }
+]

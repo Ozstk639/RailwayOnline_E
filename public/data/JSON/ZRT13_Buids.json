@@ -1,0 +1,406 @@
+[
+  {
+    "plfRoundID": "ZRT13PFB_06",
+    "plfRoundName": "桐山站",
+    "LineID": "ZRT13_01B",
+    "Flrpoints": [
+      [
+        799.5,
+        -63,
+        9721.5
+      ],
+      [
+        799.5,
+        -63,
+        9739.5
+      ],
+      [
+        835.5,
+        -63,
+        9739.5
+      ],
+      [
+        835.5,
+        -63,
+        9721.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_TS",
+    "staBuildingName": "桐山站",
+    "Conpoints": [
+      [
+        799.5,
+        -63,
+        9712.5
+      ],
+      [
+        799.5,
+        -63,
+        9748.5
+      ],
+      [
+        835.5,
+        -63,
+        9748.5
+      ],
+      [
+        835.5,
+        -63,
+        9712.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT13STA_06"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT13PFB_05",
+    "plfRoundName": "白风站",
+    "LineID": "ZRT13_01B",
+    "Flrpoints": [
+      [
+        1140.5,
+        -63,
+        9394.5
+      ],
+      [
+        1160.5,
+        -63,
+        9394.5
+      ],
+      [
+        1160.5,
+        -63,
+        9430.5
+      ],
+      [
+        1140.5,
+        -63,
+        9430.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_BF",
+    "staBuildingName": "白风站",
+    "Conpoints": [
+      [
+        1140.5,
+        -63,
+        9394.5
+      ],
+      [
+        1160.5,
+        -63,
+        9394.5
+      ],
+      [
+        1160.5,
+        -63,
+        9430.5
+      ],
+      [
+        1140.5,
+        -63,
+        9430.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT13STA_05"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT13PFB_04",
+    "plfRoundName": "沙船站",
+    "LineID": "ZRT13_01B",
+    "Flrpoints": [
+      [
+        1140.5,
+        -63,
+        8419.5
+      ],
+      [
+        1140.5,
+        -63,
+        8455.5
+      ],
+      [
+        1160.5,
+        -63,
+        8455.5
+      ],
+      [
+        1160.5,
+        -63,
+        8419.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_SC",
+    "staBuildingName": "沙船站",
+    "Conpoints": [
+      [
+        1140.5,
+        -63,
+        8419.5
+      ],
+      [
+        1140.5,
+        -63,
+        8455.5
+      ],
+      [
+        1160.5,
+        -63,
+        8455.5
+      ],
+      [
+        1160.5,
+        -63,
+        8419.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT13STA_04"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT13PFB_03",
+    "plfRoundName": "狭原站",
+    "LineID": "ZRT13_01B",
+    "Flrpoints": [
+      [
+        1431.5,
+        -63,
+        7673.5
+      ],
+      [
+        1431.5,
+        -63,
+        7709.5
+      ],
+      [
+        1451.5,
+        -63,
+        7709.5
+      ],
+      [
+        1451.5,
+        -63,
+        7673.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_XY",
+    "staBuildingName": "狭原站",
+    "Conpoints": [
+      [
+        1431.5,
+        -63,
+        7673.5
+      ],
+      [
+        1431.5,
+        -63,
+        7709.5
+      ],
+      [
+        1451.5,
+        -63,
+        7709.5
+      ],
+      [
+        1451.5,
+        -63,
+        7673.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT13STA_03"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT13PFB_02_D",
+    "plfRoundName": "连西站-下行台",
+    "LineID": "ZRT13_01B_D",
+    "Flrpoints": [
+      [
+        1539.5,
+        -63,
+        7042.5
+      ],
+      [
+        1539.5,
+        -63,
+        7050.5
+      ],
+      [
+        1577.5,
+        -63,
+        7050.5
+      ],
+      [
+        1577.5,
+        -63,
+        7042.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT13PFB_02_U",
+    "plfRoundName": "连西站-上行台",
+    "LineID": "ZRT13_01B_U",
+    "Flrpoints": [
+      [
+        1539.5,
+        -63,
+        7064.5
+      ],
+      [
+        1539.5,
+        -63,
+        7072.5
+      ],
+      [
+        1577.5,
+        -63,
+        7072.5
+      ],
+      [
+        1577.5,
+        -63,
+        7064.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT13PFB_01_U",
+    "plfRoundName": "连东站-上行台",
+    "LineID": "ZRT13_01B_U",
+    "Flrpoints": [
+      [
+        1809.5,
+        -63,
+        7042.5
+      ],
+      [
+        1809.5,
+        -63,
+        7050.5
+      ],
+      [
+        1847.5,
+        -63,
+        7050.5
+      ],
+      [
+        1847.5,
+        -63,
+        7042.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT13PFB_01_D",
+    "plfRoundName": "连东站-下行台",
+    "LineID": "ZRT13_01B_D",
+    "Flrpoints": [
+      [
+        1809.5,
+        -63,
+        7064.5
+      ],
+      [
+        1809.5,
+        -63,
+        7072.5
+      ],
+      [
+        1847.5,
+        -63,
+        7072.5
+      ],
+      [
+        1847.5,
+        -63,
+        7064.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  }
+]

@@ -1894,6 +1894,27 @@
     "CreateTime": "20251225"
   },
   {
+    "stationID": "ZRT1STA_19",
+    "stationName": "溯东站",
+    "coordinate": {
+      "x": 5468.5,
+      "z": 4896.5
+    },
+    "platforms": [
+      {
+        "ID": "ZRT1PLF_19_D"
+      },
+      {
+        "ID": "ZRT1PLF_19_U"
+      }
+    ],
+    "Type": "Points",
+    "Class": "STA",
+    "World": 0,
+    "CreateTime": "20251225",
+    "CreateBy": "639"
+  },
+  {
     "platformID": "ZRT1PLF_20_D",
     "platformName": "漪泱居前站-1站台",
     "Situation": true,

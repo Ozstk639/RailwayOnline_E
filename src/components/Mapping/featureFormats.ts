@@ -738,7 +738,7 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
     modes: ['polygon'],
     hideTempOutput: true,
     // 新 JSON：Class 建议填写“站台轮廓”（与该 subtype 名称一致）
-    classCode: '站台轮廓',
+    classCode: CLASS_CODE_BY_FEATURE['站台轮廓'],
     fields: [
       { key: 'plfRoundID', label: '站台轮廓ID(plfRoundID)', type: 'text' },          // [必填]
       { key: 'plfRoundName', label: '站台轮廓名(plfRoundName)', type: 'text' },      // [必填]

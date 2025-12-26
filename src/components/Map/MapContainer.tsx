@@ -31,6 +31,9 @@ import type { ParsedLandmark } from '@/lib/landmarkParser';
 import MeasuringModule from '@/components/Mapping/MeasuringModule';
 import MeasurementToolsModule from '@/components/Mapping/Mtools';
 
+import RuleDrivenLayer from '@/components/Rules/RuleDrivenLayer';
+import RuleLayerToggle from '@/components/Rules/RuleLayerToggle';
+
 import { formatGridNumber, snapWorldPointByMode } from '@/components/Mapping/GridSnapModeSwitch';
 
 
@@ -79,6 +82,7 @@ function MapContainer() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [measuringCloseSignal, setMeasuringCloseSignal] = useState(0);
   const [measureToolsCloseSignal, setMeasureToolsCloseSignal] = useState(0);
+  const [showRuleLayers, setShowRuleLayers] = useState(true);
 
   // 面板 z-index 管理（用于置顶）
   const [panelZIndexes, setPanelZIndexes] = useState<Record<string, number>>({
@@ -523,6 +527,23 @@ map.on('mousemove', (e: L.LeafletMouseEvent) => {
       closeSignal={measureToolsCloseSignal}
       onBecameActive={() => setMeasuringCloseSignal(v => v + 1)}
       />
+
+      {/* 规则驱动图层总开关（位置与右侧工具按钮体系对齐） */}
+      <RuleLayerToggle
+        active={showRuleLayers}
+        onToggle={() => setShowRuleLayers(v => !v)}
+      />
+
+      {/* 规则驱动图层（总开关控制，worldId 切换自动重载） */}
+      {mapReady && leafletMapRef.current && projectionRef.current && (
+        <RuleDrivenLayer
+          mapReady={mapReady}
+          map={leafletMapRef.current}
+          projection={projectionRef.current}
+          worldId={currentWorld}
+          visible={showRuleLayers}
+        />
+      )}
 
       {/* 铁路图层 - 有路径规划结果时隐藏 */}
       {mapReady && leafletMapRef.current && projectionRef.current && (
