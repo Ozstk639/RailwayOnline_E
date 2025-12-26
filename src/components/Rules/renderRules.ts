@@ -1,5 +1,7 @@
 import type * as L from 'leaflet';
 import type { FeatureStore } from './featureStore';
+import type { LabelDeclutterConfig } from './labelLayout';
+
 
 // ------------------------------
 // 基础类型
@@ -22,7 +24,7 @@ export type FloorViewConfig = {
 
 /** 楼层视角配置（UI 逻辑仍需要：何时出现楼层条/要识别哪些 Class） */
 export const DEFAULT_FLOOR_VIEW: FloorViewConfig = {
-  minLevel: 5,
+  minLevel: 6,
   buildingClass: 'STB',
   floorClass: 'STF',
   buildingFloorRefField: 'ID',
@@ -57,15 +59,34 @@ export type LabelPlan = {
 
   /** 如果你已实现“中心点+label”，这里可保留 */
   withDot?: boolean;
+
+  /**
+   * 【新增】label 布局策略（避让/去重）。
+   * - 若不提供：沿用旧逻辑（每个要素各自生成 label，不做避让）。
+   * - 若提供：由 LabelLayout 引擎统一选择位置/隐藏。
+   */
+  declutter?: LabelDeclutterConfig;
 };
 
 
+/**
+3 个可用 pane（按从下到上）：
+
+ria-overlay：线/面默认
+
+ria-point：点默认（永远压在 overlay 上）
+
+ria-point-top：更顶的点（你想“强制置顶”的就用它）
+ */
 
 export type PointSymbolPlan =
   | {
       kind: 'circle';
       radius?: number;
-      style?: L.PathOptions;
+      style?: L.CircleMarkerOptions;
+
+      /** 可选：指定点所在 pane（用于“点永远在最上层”） */
+      pane?: string;
     }
   | {
       kind: 'icon';
@@ -73,16 +94,28 @@ export type PointSymbolPlan =
       iconUrlFrom?: string;
       iconSize?: [number, number];
       iconAnchor?: [number, number];
+
+      /** 可选：指定点所在 pane */
+      pane?: string;
+
+      /** 可选：Marker 内部排序（只影响 marker 之间，不影响线/面） */
+      zIndexOffset?: number;
     };
 
 export type SymbolPlan = {
+  /** 可选：主几何（点/线/面）所在 pane */
+  pane?: string;
+
   /** Path（线/面）样式 */
   pathStyle?: L.PathOptions | ((r: FeatureRecord, ctx: RenderContext, store: FeatureStore) => L.PathOptions);
+
   /** 点样式 */
   point?: PointSymbolPlan | ((r: FeatureRecord, ctx: RenderContext, store: FeatureStore) => PointSymbolPlan);
+
   /** label */
   label?: LabelPlan;
 };
+
 
 export type RuleMatch = {
   Class?: string;
@@ -338,6 +371,159 @@ function getStationPointColorFromPlatforms(sta: FeatureRecord, store: FeatureSto
   return null;
 }
 
+// ------------------------------
+// STA/PLF 点位重合索引（用于“重合排除/兜底显示”）
+// - 以 XZ 为主判断重合（2D 地图视觉上重合即可）
+// - 对浮点做轻微 round，避免误差导致 key 不一致
+// ------------------------------
+
+type StaPlfPointIndex = {
+  staKeys: Set<string>;
+  /** 仅统计 Connect !== false 的 PLF，用于“STA 在高 zoom 的兜底显示” */
+  plfConnectKeys: Set<string>;
+};
+
+const __staPlfIndexCache = new WeakMap<FeatureStore, StaPlfPointIndex>();
+
+function roundCoord(n: number, prec = 1000) {
+  // prec=1000 => 0.001 精度
+  return Math.round(n * prec) / prec;
+}
+
+function pointKeyXZ(p3?: { x: number; y: number; z: number }): string | null {
+  if (!p3) return null;
+  const x = roundCoord(Number(p3.x));
+  const z = roundCoord(Number(p3.z));
+  if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
+  return `${x},${z}`;
+}
+
+function getStaPlfPointIndex(store: FeatureStore): StaPlfPointIndex {
+  const cached = __staPlfIndexCache.get(store);
+  if (cached) return cached;
+
+  const staKeys = new Set<string>();
+  const plfConnectKeys = new Set<string>();
+
+  const sta = store.byClass['STA'] ?? [];
+  for (const r of sta) {
+    const k = pointKeyXZ(r.p3);
+    if (k) staKeys.add(k);
+  }
+
+  const plf = store.byClass['PLF'] ?? [];
+  for (const r of plf) {
+    const k = pointKeyXZ(r.p3);
+    if (!k) continue;
+
+    const connect = (r.featureInfo as any)?.Connect;
+    if (connect !== false) plfConnectKeys.add(k);
+  }
+
+  const idx: StaPlfPointIndex = { staKeys, plfConnectKeys };
+  __staPlfIndexCache.set(store, idx);
+  return idx;
+}
+
+// ------------------------------
+// 通用：点集包含（忽略顺序）+ 全局互斥选择
+// 用途：在 zoom>=阈值 时，让两类要素“二选一”显示
+// 规则：只要 overlay 存在任意一条“不被 base 包含”，则选择 overlay（隐藏 base）；否则选择 base（隐藏 overlay）
+// ------------------------------
+
+type Coord3 = { x: number; y: number; z: number };
+
+function __roundN(n: number, prec = 1000) {
+  // 0.001 精度（可按需调）
+  return Math.round(n * prec) / prec;
+}
+
+function __coordKeyXZ(p: { x: number; z: number }, prec = 1000): string | null {
+  const x = __roundN(Number(p.x), prec);
+  const z = __roundN(Number(p.z), prec);
+  if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
+  return `${x},${z}`;
+}
+
+/** polyline 的控制点 -> “去重 + 排序”的 key 列表（忽略顺序） */
+function __polyPointKeyListXZ(coords3?: Coord3[], prec = 1000): string[] | null {
+  if (!coords3 || coords3.length < 2) return null;
+
+  const set = new Set<string>();
+  for (const p of coords3) {
+    const k = __coordKeyXZ({ x: p.x, z: p.z }, prec);
+    if (!k) return null;
+    set.add(k);
+  }
+  const arr = Array.from(set);
+  arr.sort();
+  return arr;
+}
+
+/** a ⊆ b（aKeys/bKeys 为排序数组） */
+function __isSubsetSortedKeys(aKeys: string[], bKeys: string[]): boolean {
+  let i = 0, j = 0;
+  while (i < aKeys.length && j < bKeys.length) {
+    const a = aKeys[i];
+    const b = bKeys[j];
+    if (a === b) { i++; j++; continue; }
+    if (a > b) { j++; continue; }  // b 追赶
+    return false;                  // a < b => b 缺少 a
+  }
+  return i === aKeys.length;
+}
+
+/**
+ * 全局互斥选择：
+ * - overlay 中只要存在任意一条“不被任何 base 包含”，则选择 overlay
+ * - 否则选择 base
+ */
+function chooseExclusiveByContainment(
+  baseKeyLists: string[][],
+  overlayKeyLists: string[][],
+): 'base' | 'overlay' {
+  if (overlayKeyLists.length === 0) return 'base';
+  if (baseKeyLists.length === 0) return 'overlay';
+
+  const overlayHasUncontained = overlayKeyLists.some(ok => !baseKeyLists.some(bk => __isSubsetSortedKeys(ok, bk)));
+  return overlayHasUncontained ? 'overlay' : 'base';
+}
+
+// ------------------------------
+// RLE 专用：zoom>=6 时，决定显示 dir3 还是显示 alt(0/1/2/4)
+// ------------------------------
+
+type RleExclusiveChoice = { choice: 'dir3' | 'alt' };
+const __rleChoiceCache = new WeakMap<FeatureStore, RleExclusiveChoice>();
+
+function getRleExclusiveChoice(store: FeatureStore): RleExclusiveChoice {
+  const cached = __rleChoiceCache.get(store);
+  if (cached) return cached;
+
+  const rles = store.byClass['RLE'] ?? [];
+
+  const dir3Keys: string[][] = [];
+  const altKeys: string[][] = [];
+
+  for (const r of rles) {
+    if (r.type !== 'Polyline') continue;
+
+    const raw = (r.featureInfo as any)?.direction;
+    const dir = raw === '' || raw === null || raw === undefined ? NaN : Number(raw);
+
+    const keys = __polyPointKeyListXZ(r.coords3);
+    if (!keys) continue;
+
+    if (dir === 3) dir3Keys.push(keys);
+    else if (dir === 0 || dir === 1 || dir === 2 || dir === 4) altKeys.push(keys);
+  }
+
+  const pick = chooseExclusiveByContainment(dir3Keys, altKeys);
+  const choice: RleExclusiveChoice = { choice: pick === 'base' ? 'dir3' : 'alt' };
+  __rleChoiceCache.set(store, choice);
+  return choice;
+}
+
 
 
 export const RENDER_RULES: RenderRule[] = [
@@ -348,19 +534,28 @@ export const RENDER_RULES: RenderRule[] = [
   // (2) label：附着在铁路线上（依赖 RuleDrivenLayer.tsx 的 Polyline label 补丁）
   // ------------------------------------------------------------------
   {
-    name: '铁路 RLE：direction 缩放控制 + 沿线 label',
+    name: '铁路 RLE：direction 缩放控制',
     match: { Class: 'RLE', Type: 'Polyline' },
     zoom: [0, 99],
-    visible: (r, ctx) => {
-      const raw = (r.featureInfo as any)?.direction;
-      const dir = raw === '' || raw === null || raw === undefined ? NaN : Number(raw);
+visible: (r, ctx, store) => {
+  const raw = (r.featureInfo as any)?.direction;
+  const dir = raw === '' || raw === null || raw === undefined ? NaN : Number(raw);
 
-      if (dir === 3) return true;                 // 3：全缩放显示
-      if ([0, 1, 2, 4].includes(dir)) return ctx.zoomLevel >= 5; // 0/1/2/4：>=5 才显示
+  // zoom < 6：只显示展示线 dir=3
+  if (ctx.zoomLevel < 6) return dir === 3;
 
-      // 未知 direction：按“普通铁路”处理（>=5 才显示）
-      return ctx.zoomLevel >= 5;
-    },
+  // zoom >= 6：进入互斥选择
+  const choice = getRleExclusiveChoice(store).choice;
+
+  if (choice === 'dir3') {
+    // 只有当“所有 alt 都能被某条 dir3 包含”时，才显示 dir3，alt 全隐藏
+    return dir === 3;
+  } else {
+    // 只要存在任意 alt 不被包含，则 dir3 全隐藏，显示 alt
+    return dir === 0 || dir === 1 || dir === 2 || dir === 4;
+  }
+},
+
     symbol: {
       pathStyle: (r) => {
         const c = normalizeColor((r.featureInfo as any)?.color) ?? '#111827';
@@ -370,17 +565,27 @@ export const RENDER_RULES: RenderRule[] = [
           weight: 3,
         };
       },
-      //label: {
-      //  enabled: true,
-      //  placement: 'center', // “沿线”在当前实现中取折线的中点
-      //  minLevel: 0,
-      //  textFrom: (r) => {
-      //    return (
-      //      String((r.featureInfo as any)?.LineName ?? '').trim() ||
-      //      String((r.featureInfo as any)?.LineID ?? '').trim()
-      //    );
-      //  },
-      //},
+label: {
+  enabled: true,
+  minLevel: 5,
+  placement: 'center',
+        textFrom: (r) => {
+          return (
+            String((r.featureInfo as any)?.LineName ?? '').trim() ||
+            String((r.featureInfo as any)?.LineID ?? '').trim()
+          );
+        },
+  offsetY: 10,
+  withDot: true,
+  declutter: {
+    priority: 10,
+    minSpacingPx: 6,
+    candidates: ['N', 'NE', 'NW', 'E', 'W', 'SE', 'SW', 'S'],
+    allowHide: true,
+    allowAbbrev: true,
+    abbrev: (s) => (s.length > 6 ? s.slice(0, 6) + '…' : s),
+  },
+}
     },
   },
 
@@ -390,7 +595,7 @@ export const RENDER_RULES: RenderRule[] = [
   {
     name: '站台轮廓 PFB：按线路色渲染（补#）',
     match: { Class: 'PFB', Type: 'Polygon' },
-    zoom: [3, 99],
+    zoom: [5, 99],
     symbol: {
       pathStyle: (r, _ctx, store) => {
         const c = normalizeColor(store.findRelatedLineColor(r)) ?? '#2563eb';
@@ -434,12 +639,10 @@ export const RENDER_RULES: RenderRule[] = [
       }
       return base;
     },
-
-    label: {
-      enabled: true,
-      placement: 'center',
-      minLevel: 0,
-      withDot: true,
+label: {
+  enabled: true,
+  minLevel: 0,
+  placement: 'center',
       textFrom: (r, ctx) => {
         // zoom>=4：不显示中心点 label
         if (ctx.zoomLevel >= 4) return '';
@@ -451,7 +654,18 @@ export const RENDER_RULES: RenderRule[] = [
 
         return String((r.featureInfo as any)?.staBuildingName ?? '').trim();
       },
-    },
+  offsetY: 10,
+  withDot: true,
+  declutter: {
+    priority: 10,
+    minSpacingPx: 6,
+    candidates: ['N', 'NE', 'NW', 'E', 'W', 'SE', 'SW', 'S'],
+    allowHide: true,
+    allowAbbrev: true,
+    abbrev: (s) => (s.length > 6 ? s.slice(0, 6) + '…' : s),
+  },
+}
+
   },
 },
 
@@ -462,11 +676,26 @@ export const RENDER_RULES: RenderRule[] = [
   // - zoomLevel 4..6：显示固定图标
   // - zoomLevel>6：不显示（由 findFirstRule + zoom 裁剪自然实现）
   // ------------------------------------------------------------------
+
 {
-  name: '车站点 STA：zoom 4-5 点颜色读取下属站台点颜色（平台首线路色）',
+  name: '车站点 STA：zoom 4-5 正常显示；zoom>=6 若与可显示 PLF 重合则兜底显示',
   match: { Class: 'STA', Type: 'Points' },
-  zoom: [4, 7],
+  zoom: [4, 99],
+  visible: (r, ctx, store) => {
+    // zoom 4-5：保持原逻辑（正常显示）
+    if (ctx.zoomLevel >= 4 && ctx.zoomLevel <= 7) return true;
+
+    // zoom>=6：仅当“该 STA 与 Connect!==false 的 PLF 坐标重合”时显示
+    if (ctx.zoomLevel >= 6) {
+      const idx = getStaPlfPointIndex(store);
+      const k = pointKeyXZ(r.p3);
+      return !!k && idx.plfConnectKeys.has(k);
+    }
+
+    return false;
+  },
   symbol: {
+    pane: 'ria-point-top',
     point: (r, ctx, store) => {
       void ctx;
 
@@ -483,16 +712,25 @@ export const RENDER_RULES: RenderRule[] = [
         },
       };
     },
-    label: {
-      enabled: true,
-      placement: 'near',
-      minLevel: 4,
-      offsetY: 10,
-      textFrom: (r) => String((r.featureInfo as any)?.stationName ?? '').trim(),
-    },
+label: {
+  
+  enabled: true,
+  minLevel: 4,
+  placement: 'near',
+  textFrom: (r) => String((r.featureInfo as any)?.stationName ?? '').trim(),
+  offsetY: 10,
+  withDot: true,
+  declutter: {
+    priority: 10,
+    minSpacingPx: 6,
+    candidates: ['N', 'NE', 'NW', 'E', 'W', 'SE', 'SW', 'S'],
+    allowHide: true,
+    allowAbbrev: true,
+    abbrev: (s) => (s.length > 6 ? s.slice(0, 6) + '…' : s),
+  },
+}
   },
 },
-
 
   // ------------------------------------------------------------------
   // (6) 站台点 PLF：
@@ -503,7 +741,20 @@ export const RENDER_RULES: RenderRule[] = [
   name: '站台点 PLF：zoom>=6 点颜色读取所属第一个线路 color',
   match: { Class: 'PLF', Type: 'Points' },
   zoom: [8, 99],
+  visible: (r, _ctx, store) => {
+  // 1) Connect=false 永不显示
+  const connect = (r.featureInfo as any)?.Connect;
+  if (connect === false) return false;
+
+  // 2) 与 STA 坐标重合则 PLF 不显示（地理关系排除）
+  const idx = getStaPlfPointIndex(store);
+  const k = pointKeyXZ(r.p3);
+  if (k && idx.staKeys.has(k)) return false;
+
+  return true;
+},
   symbol: {
+    pane: 'ria-point-top',
     point: (r, ctx, store) => {
       void ctx;
 
@@ -520,13 +771,24 @@ export const RENDER_RULES: RenderRule[] = [
         },
       };
     },
-    label: {
-      enabled: true,
-      placement: 'near',
-      minLevel: 6,
-      offsetY: 10,
-      textFrom: (r) => String((r.featureInfo as any)?.platformName ?? '').trim(),
-    },
+label: {
+  enabled: true,
+  minLevel: 8, 
+  placement: 'near',
+  textFrom: (r) => String((r.featureInfo as any)?.platformName ?? '').trim(),
+  offsetY: 10,
+  withDot: true,
+  declutter: {
+    priority: 10,
+    minSpacingPx: 6,
+    candidates: ['N', 'NE', 'NW', 'E', 'W', 'SE', 'SW', 'S'],
+    allowHide: true,
+    // 可选：放不下时缩略
+    allowAbbrev: true,
+    abbrev: (s) => (s.length > 6 ? s.slice(0, 6) + '…' : s),
+  },
+}
+
   },
 },
 
@@ -591,6 +853,7 @@ export const RENDER_RULES: RenderRule[] = [
     hideIfSameIdExistsInClasses: ['STB'],
     symbol: {
       point: {
+        pane: 'ria-point-top',
         kind: 'icon',
         iconUrlFrom: 'iconUrl',
         iconSize: [24, 24],
