@@ -222,6 +222,7 @@ function pickIdFieldValue(featureInfo: any, cls: string): { idField: string; idV
 
   // 常见约定优先
   if (cls === 'STB') candidates.push('staBuildingID');
+    if (cls === 'SBP') candidates.push('staBuildingPointID', 'staBuildingPointId', 'stationID', 'stationId', 'staBuildingID');
   if (cls === 'STF') candidates.push('staBFloorID');
   if (cls === 'PLF') candidates.push('platformID');
   if (cls === 'PFB') candidates.push('plfRoundID', 'platformID');
@@ -863,7 +864,7 @@ label: {
         enabled: true,
         placement: 'near',
         minLevel: 6,
-        textFrom: (r) => String((r.featureInfo as any)?.staBuildingName ?? '').trim(),
+        textFrom: (r) => String((r.featureInfo as any)?.staBuildingPointName ?? (r.featureInfo as any)?.staBuildingName ?? (r.featureInfo as any)?.stationName ?? '').trim(),
       },
     },
   },

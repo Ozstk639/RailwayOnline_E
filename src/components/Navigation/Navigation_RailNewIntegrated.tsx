@@ -73,6 +73,42 @@ export type TransferType =
   | 'leaveMainline'
   | 'enterConnector';
 
+export type RailNewStaBuildingSearchItem = {
+  id: string;
+  name: string;
+  kind: 'STB' | 'SBP';
+  coord: Coordinate; // STB centroid / SBP point
+  stationIds: string[];
+};
+
+export async function listRailNewStaBuildingsForSearch(opt: {
+  worldId: string;
+  dataSourceOverride?: Partial<WorldRuleDataSource>;
+  filesOverride?: string[];
+  fetcher?: (url: string) => Promise<any[]>;
+}): Promise<RailNewStaBuildingSearchItem[]> {
+  const all = await loadRuleItems(opt.worldId, {
+    dataSourceOverride: opt.dataSourceOverride,
+    filesOverride: opt.filesOverride,
+    fetcher: opt.fetcher,
+    strict: true,
+  });
+
+  const buildings = parseBuildings(all);
+
+  const out: RailNewStaBuildingSearchItem[] = [];
+  for (const b of buildings.values()) {
+    out.push({
+      id: b.id,
+      name: b.name,
+      kind: b.kind,
+      coord: b.representativePoint,
+      stationIds: b.stationIds.slice(),
+    });
+  }
+  return out;
+}
+
 
 export type NavRailSegmentRail = {
   kind: 'rail';
@@ -489,29 +525,78 @@ async function defaultFetcher(url: string): Promise<any[]> {
   return Array.isArray(data) ? data : [];
 }
 
-type RuleLoadOptions = Pick<NavigationRailComputeOptions, 'dataSourceOverride' | 'filesOverride' | 'fetcher'>;
+function normalizeWorldId(worldId: string): string {
+  const wid = String(worldId ?? '').trim();
 
-async function loadRuleItems(worldId: string, opt: RuleLoadOptions): Promise<RawItem[]> {
-  const base = RULE_DATA_SOURCES[worldId];
+  // 1) 已经是内部 key（zth/eden/naraku/houtu）直接返回
+  if (wid && (RULE_DATA_SOURCES as any)[wid]) return wid;
+
+  // 2) 兼容数字世界：0..5（你 JSON 规范里 World 是 integer）
+  if (/^\d+$/.test(wid)) {
+    const n = parseInt(wid, 10);
+    if (n === 0) return 'zth';
+    if (n === 1) return 'naraku';
+    if (n === 2) return 'houtu';
+    if (n === 3) return 'eden';
+    // 4/5 你后续可补：laputa / yunduan 等
+    return wid;
+  }
+
+  // 3) 兼容中文世界名（如果 UI 传的是中文）
+  const map: Record<string, string> = {
+    零洲: 'zth',
+    奈落: 'naraku',
+    后土: 'houtu',
+    伊甸: 'eden',
+  };
+  return map[wid] ?? wid;
+}
+
+type RuleLoadOptions = Pick<NavigationRailComputeOptions, 'dataSourceOverride' | 'filesOverride' | 'fetcher'> & {
+  /** strict=true：若完全加载不到任何数据则抛错（用于候选列表/调试） */
+  strict?: boolean;
+};
+
+async function loadRuleItems(worldId: string, opt: RuleLoadOptions): Promise<any[]> {
+  const wid = normalizeWorldId(worldId);
+  const base = RULE_DATA_SOURCES[wid];
+
   const merged: WorldRuleDataSource = {
     baseUrl: opt.dataSourceOverride?.baseUrl ?? base?.baseUrl ?? '/data/JSON',
     files: opt.filesOverride ?? opt.dataSourceOverride?.files ?? base?.files ?? [],
   };
 
+  if (opt.strict && merged.files.length === 0) {
+    throw new Error(`RULE_DATA_SOURCES[${wid}] 未配置 files（worldId=${worldId} -> ${wid}），无法加载 STB/STA/PLF/RLE`);
+  }
+
   const fetcher = opt.fetcher ?? defaultFetcher;
   const items: RawItem[] = [];
+
+  let loadedAnyFile = false;
+
   for (const file of merged.files) {
     const url = `${merged.baseUrl.replace(/\/$/, '')}/${file}`;
     try {
       const arr = await fetcher(url);
+      if (arr.length > 0) loadedAnyFile = true;
       for (const it of arr) items.push(it);
     } catch {
       // 允许单文件失败不中断（与 RuleLayer 行为一致）
       continue;
     }
   }
+
+  if (opt.strict && !loadedAnyFile) {
+    throw new Error(
+      `未能从任何文件加载到 Rule JSON（worldId=${worldId} -> ${wid}）。` +
+        `请检查 baseUrl=${merged.baseUrl} 与 files 是否 404/路径不一致。`
+    );
+  }
+
   return items;
 }
+
 
 function parseSta(all: RawItem[]): Map<string, Sta> {
   const out = new Map<string, Sta>();
@@ -655,24 +740,81 @@ function parseBuildings(all: RawItem[]): Map<string, Building> {
     if (cls !== 'STB' && cls !== 'SBP') continue;
 
     const id =
-      str(it.staBuildingID ?? it.staBuildingId ?? it.ID ?? it.id ?? it.stationID ?? it.stationId);
+      cls === 'SBP'
+        ? str(
+            it.staBuildingPointID ??
+              it.staBuildingPointId ??
+              it.stationID ??
+              it.stationId ??
+              // 过渡期兜底：部分旧数据可能仍使用 staBuildingID
+              it.staBuildingID ??
+              it.staBuildingId ??
+              it.ID ??
+              it.id
+          )
+        : str(
+            it.staBuildingID ??
+              it.staBuildingId ??
+              it.buildingID ??
+              it.BuildingID ??
+              it.buildingId ??
+              it.ID ??
+              it.id
+          );
     if (!id) continue;
 
-    const name = str(it.staBuildingName ?? it.name ?? id);
+    const name =
+      cls === 'SBP'
+        ? str(
+            it.staBuildingPointName ??
+              it.stationName ??
+              it.staBuildingName ??
+              it.buildingName ??
+              it.BuildingName ??
+              it.name ??
+              it.Name ??
+              id
+          )
+        : str(
+            it.staBuildingName ??
+              it.buildingName ??
+              it.BuildingName ??
+              it.name ??
+              it.Name ??
+              id
+          );
 
-    let representativePoint: Coordinate | null = null;
-    let polygon: Coordinate[] | undefined = undefined;
+          
+let representativePoint: Coordinate | null = null;
+let polygon: Coordinate[] | undefined = undefined;
 
-    if (cls === 'SBP') {
-      representativePoint = toCoord(it.coordinate);
-    } else {
-      const con = coordArray(it.Conpoints ?? it.conpoints);
-      if (con.length >= 3) {
-        polygon = con;
-        representativePoint = centroidPolygonXZ(con);
-      }
-    }
-    if (!representativePoint) continue;
+// 允许直接给中心点（STB 也兼容）
+const coordPoint =
+  toCoord(it.coordinate ?? it.center ?? it.Coord ?? it.coord) ?? null;
+
+if (cls === 'SBP') {
+  representativePoint = coordPoint;
+} else {
+  // STB：优先多边形中心，其次退化到 coordinate/center
+  const con = coordArray(
+    it.Conpoints ??
+      it.conpoints ??
+      it.Flrpoints ??
+      it.flrpoints ??
+      it.points ??
+      it.Points
+  );
+
+  if (con.length >= 3) {
+    polygon = con;
+    representativePoint = centroidPolygonXZ(con) ?? coordPoint;
+  } else {
+    representativePoint = coordPoint;
+  }
+}
+
+if (!representativePoint) continue;
+
 
     const stationIds = parseStationsGroup(it);
 
@@ -1735,6 +1877,7 @@ export type NavRailNewIntegratedPlan = NavRailPlan & {
     endToBuildingDistance: number;
   };
 };
+
 
 /**
  * 集成版入口：不再依赖 Navigation_Start.ts。

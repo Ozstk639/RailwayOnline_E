@@ -900,8 +900,8 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
     hideTempOutput: true,
     classCode: CLASS_CODE_BY_FEATURE['车站建筑点'], // SBP
     fields: [
-      { key: 'stationID', label: '车站建筑点ID(stationID)', type: 'text' },   // [必填]
-      { key: 'stationName', label: '车站建筑名(stationName)', type: 'text' }, // [必填]
+      { key: 'staBuildingPointID', label: '车站建筑点ID(staBuildingPointID)', type: 'text' },   // [必填]
+      { key: 'staBuildingPointName', label: '车站建筑名(staBuildingPointName)', type: 'text' }, // [必填]
       { key: 'elevation', label: '高度(y)', type: 'number', optional: true }, // [非必填]
     ],
     groups: [
@@ -912,7 +912,7 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
         optional: false, // [必填]
         minItems: 1,
         fields: [
-          { key: 'ID', label: '站台ID', type: 'text' }, // [必填]
+          { key: 'ID', label: '车站ID', type: 'text' }, // [必填]
         ],
       },
     ],
@@ -936,14 +936,17 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
     },
     hydrate: (featureInfo) => ({
       values: {
-        stationID: featureInfo?.stationID ?? '',
-        stationName: featureInfo?.stationName ?? '',
+        // 兼容过渡期字段名：stationID/stationName（旧）→ staBuildingPointID/staBuildingPointName（新）
+        staBuildingPointID: featureInfo?.staBuildingPointID ?? featureInfo?.staBuildingPointId ?? featureInfo?.stationID ?? featureInfo?.stationId ?? featureInfo?.staBuildingID ?? featureInfo?.staBuildingId ?? '',
+        staBuildingPointName: featureInfo?.staBuildingPointName ?? featureInfo?.stationName ?? featureInfo?.staBuildingName ?? '',
         elevation: featureInfo?.elevation ?? '',
       },
       groups: {
         stations: Array.isArray(featureInfo?.stations)
-          ? featureInfo.stations.map((s: any) => ({ ID: s?.ID ?? '' }))
-          : [],
+          ? featureInfo.stations.map((s: any) => ({ ID: s?.ID ?? s?.id ?? '' }))
+          : (Array.isArray(featureInfo?.Stations)
+            ? featureInfo.Stations.map((s: any) => ({ ID: s?.ID ?? s?.id ?? '' }))
+            : []),
       },
     }),
     coordsFromFeatureInfo: (featureInfo) => {
@@ -953,10 +956,18 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
     },
     validateImportItem: (item) => {
       if (!item || typeof item !== 'object') return '不是对象';
-      if (!item.stationID) return '缺少 stationID';
-      if (!item.stationName) return '缺少 stationName';
-      if (!item.coordinate || !isFiniteNum(item.coordinate.x) || !isFiniteNum(item.coordinate.z)) return '缺少合法 coordinate.x / coordinate.z';
-      if (!Array.isArray(item.stations)) return 'stations 必须是数组';
+ 
+      const id = String((item as any).staBuildingPointID ?? (item as any).staBuildingPointId ?? (item as any).stationID ?? (item as any).stationId ?? (item as any).staBuildingID ?? (item as any).staBuildingId ?? '').trim();
+      if (!id) return '缺少 staBuildingPointID';
+
+      const name = String((item as any).staBuildingPointName ?? (item as any).stationName ?? (item as any).staBuildingName ?? '').trim();
+      if (!name) return '缺少 staBuildingPointName';
+
+      if (!item.coordinate || !isFiniteNum((item as any).coordinate.x) || !isFiniteNum((item as any).coordinate.z)) return '缺少合法 coordinate.x / coordinate.z';
+
+      const sts = (item as any).stations ?? (item as any).Stations;
+      if (!Array.isArray(sts)) return 'stations 必须是数组';
+      
       return;
     },
   },

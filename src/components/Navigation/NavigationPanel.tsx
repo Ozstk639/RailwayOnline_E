@@ -45,6 +45,7 @@ import { findTeleportPath, extractToriiList } from '@/lib/toriiTeleport';
 
 
 import { computeRailPlanFromCoords, type NavRailNewIntegratedPlan, type TransferType } from './Navigation_RailNewIntegrated';
+import { listRailNewStaBuildingsForSearch, type RailNewStaBuildingSearchItem } from './Navigation_RailNewIntegrated';
 import type { RouteHighlightData, RouteStyledSegment, RouteStationMarker } from '@/components/Map/RouteHighlightLayer';
 
 
@@ -85,10 +86,15 @@ interface NavigationPanelProps {
 }
 
 interface SearchItem {
-  type: 'station' | 'landmark' | 'player';
+  type: 'station' | 'landmark' | 'player' | 'StaBuilding';
   name: string;
   coord: Coordinate;
+
+  // StaBuilding 专用（可选，但建议保留）
+  staBuildingId?: string;
+  staBuildingKind?: 'STB' | 'SBP';
 }
+
 
 // UI：在 TravelMode 的基础上增加 rail_new
 type TravelModePanel = TravelMode | 'rail_new';
@@ -164,7 +170,7 @@ const DEFAULT_RAIL_NEW_CONFIG = {
   // 铁路乘坐速度（m/s）
   railRideSpeed: 16.0,
   // 站内换乘成本阈值：距离 cost = dist / factor（你此前要求的“十分之一权重”本质等价）
-  transferCostFactor: 10.0,
+  transferCostFactor: 1.0,
   // 正常站台同台换乘成本（用于让联络线连接节点优先）
   normalPlatformTransferCost: 5.0,
 };
@@ -243,20 +249,25 @@ function PointSearchInput({ value, onChange, items, placeholder, label }: PointS
                     ? 'bg-blue-500 text-white'
                     : item.type === 'player'
                       ? 'bg-cyan-500 text-white'
-                      : 'bg-orange-500 text-white'
+                        : item.type === 'StaBuilding'
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-orange-500 text-white'
                 }`}
               >
                 {item.type === 'station' ? (
                   <Train className="w-3 h-3" />
                 ) : item.type === 'player' ? (
                   <User className="w-3 h-3" />
+                ) : item.type === 'StaBuilding' ? (
+                  <Shield className="w-3 h-3" />
                 ) : (
                   <Home className="w-3 h-3" />
                 )}
+
               </span>
               <span>{item.name}</span>
               <span className="text-xs text-gray-400 ml-auto">
-                {item.type === 'station' ? '站点' : item.type === 'player' ? '玩家' : '地标'}
+                {item.type === 'station' ? '站点' : item.type === 'player' ? '玩家' : item.type === 'StaBuilding' ? '站体' : '地标'}
               </span>
             </button>
           ))}
@@ -489,6 +500,52 @@ export function NavigationPanel({
   const [resultRailNew, setResultRailNew] = useState<RailNewPlan | null>(null);
   const [searching, setSearching] = useState(false);
 
+  const [railNewStaBuildingItems, setRailNewStaBuildingItems] = useState<SearchItem[]>([]);
+
+useEffect(() => {
+  let alive = true;
+
+  (async () => {
+    try {
+      const buildings: RailNewStaBuildingSearchItem[] = await listRailNewStaBuildingsForSearch({ worldId });
+
+      if (!alive) return;
+
+      // 去重：同名优先 STB（中点）；没有 STB 则用 SBP
+      const byName = new Map<string, RailNewStaBuildingSearchItem>();
+      for (const b of buildings) {
+        const key = b.name || b.id;
+        const prev = byName.get(key);
+        if (!prev) byName.set(key, b);
+        else if (prev.kind !== 'STB' && b.kind === 'STB') byName.set(key, b);
+      }
+
+      const items: SearchItem[] = [];
+      for (const b of byName.values()) {
+        items.push({
+          type: 'StaBuilding',
+          name: b.name,
+          coord: b.coord,
+          staBuildingId: b.id,
+          staBuildingKind: b.kind,
+        });
+      }
+
+      items.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'));
+      setRailNewStaBuildingItems(items);
+    } catch (err) {
+      console.error('[rail_new] listRailNewStaBuildingsForSearch failed', err);
+      if (alive) setRailNewStaBuildingItems([]);
+    }
+
+  })();
+
+  return () => {
+    alive = false;
+  };
+}, [worldId]);
+
+
   // rail_new：每段展开状态
   const [expandedRailLegs, setExpandedRailLegs] = useState<Record<string, boolean>>({});
 
@@ -524,8 +581,10 @@ export function NavigationPanel({
       });
     }
 
+    for (const b of railNewStaBuildingItems) items.push(b);
+
     return items;
-  }, [stations, landmarks, players]);
+  }, [stations, landmarks, players, railNewStaBuildingItems]);
 
   const railwayGraph = useMemo(() => buildRailwayGraph(lines), [lines]);
   const toriiList = useMemo(() => extractToriiList(landmarks), [landmarks]);
