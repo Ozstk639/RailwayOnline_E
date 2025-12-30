@@ -55,7 +55,6 @@ import WorkflowHost, {
   type WorldPoint,
 } from '@/components/Mapping/Workflow/WorkflowHost';
 import RailwayWorkflow from '@/components/Mapping/Workflow/RailwayWorkflow';
-import StationWorkflow from '@/components/Mapping/Workflow/StationWorkflow';
 
 
 
@@ -1947,7 +1946,6 @@ const handleDrawModeButtonClick = (m: 'point' | 'polyline' | 'polygon') => {
 // =========================
 const workflowRegistry: WorkflowRegistry = {
   railway: RailwayWorkflow,
-  station: StationWorkflow,
 };
 
 const stopWorkflowToSelector = () => {
@@ -2298,7 +2296,6 @@ return (
       onChange={(e) => setWorkflowKey(e.target.value as WorkflowKey)}
     >
       <option value="railway">铁路</option>
-      <option value="station">车站和站台</option>
     </select>
 
     <button
@@ -2498,6 +2495,7 @@ onChange={(e) => {
   onMouseDownCapture={(e) => e.stopPropagation()}
   onPointerDownCapture={(e) => e.stopPropagation()}
   onTouchStartCapture={(e) => e.stopPropagation()}
+  onClickCapture={(e) => e.stopPropagation()}
 >
   <WorkflowHost
     workflowKey={workflowKey}
@@ -2788,6 +2786,7 @@ onChange={(e) => {
   onMouseDownCapture={(e) => e.stopPropagation()}
   onPointerDownCapture={(e) => e.stopPropagation()}
   onTouchStartCapture={(e) => e.stopPropagation()}
+  onClickCapture={(e) => e.stopPropagation()}
 >
   <WorkflowHost
     workflowKey={workflowKey}

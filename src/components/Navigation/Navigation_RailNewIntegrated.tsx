@@ -95,15 +95,19 @@ export async function listRailNewStaBuildingsForSearch(opt: {
   });
 
   const buildings = parseBuildings(all);
+	const stas = parseSta(all);
+	const idx = buildStationBuildingIndex(stas, buildings);
 
   const out: RailNewStaBuildingSearchItem[] = [];
   for (const b of buildings.values()) {
+		const sset = idx.buildingToStations.get(b.id);
+		const stationIds = sset ? Array.from(sset) : b.stationIds.slice();
     out.push({
       id: b.id,
       name: b.name,
       kind: b.kind,
       coord: b.representativePoint,
-      stationIds: b.stationIds.slice(),
+			stationIds,
     });
   }
   return out;
@@ -224,6 +228,11 @@ type Sta = {
   stationName: string;
   coordinate: Coordinate;
   platformIds: string[];
+  /**
+   * 新规范：车站所属车站建体（STB/SBP 的 ID）
+   * - 过渡期兼容：旧数据可能缺失
+   */
+  STBuilding?: string;
 };
 
 type PlfLineRef = {
@@ -608,6 +617,18 @@ function parseSta(all: RawItem[]): Map<string, Sta> {
     const c = toCoord(it.coordinate);
     if (!c) continue;
 
+    // 新规范字段：STBuilding（车站所属车站建体 STB/SBP 的 ID）
+    // - 兼容：旧数据可能缺失；也可能使用不同大小写
+    const STBuildingRaw = str(
+      it.STBuilding ??
+        it.StBuilding ??
+        it.stBuilding ??
+        it.stationBuilding ??
+        it.stationBuildingId ??
+        ''
+    );
+    const STBuilding = STBuildingRaw ? STBuildingRaw : undefined;
+
     const platformsArr = it.platforms ?? it.Platforms ?? it.PLFS ?? [];
     const platformIds: string[] = [];
     if (Array.isArray(platformsArr)) {
@@ -617,7 +638,7 @@ function parseSta(all: RawItem[]): Map<string, Sta> {
       }
     }
 
-    out.set(stationID, { stationID, stationName, coordinate: c, platformIds });
+    out.set(stationID, { stationID, stationName, coordinate: c, platformIds, STBuilding });
   }
   return out;
 }
@@ -1079,6 +1100,82 @@ function makeOccs(
   return { occsByLine, platformToStation };
 }
 
+// ------------------------------
+// 车站归属（STB/SBP）解析：
+// - 优先：STA.STBuilding（车站向上索引）
+// - 兜底：STB/SBP 的 Stations/stations（车站向下归属）
+//
+// 注意：你要求“向下补全”拆分为可拆卸函数，以便后续性能调优。
+// ------------------------------
+
+type StationBuildingIndex = {
+  /** stationId -> buildingId(s) */
+  stationToBuildings: Map<string, Set<string>>;
+  /** buildingId -> stationId(s) */
+  buildingToStations: Map<string, Set<string>>;
+  /** STA.STBuilding 指向但 buildings 未加载到的 buildingId（仅用于诊断/兼容） */
+  unknownBuildingIds: Set<string>;
+};
+
+function addStationBuildingRel(idx: StationBuildingIndex, stationId: string, buildingId: string) {
+  if (!idx.stationToBuildings.has(stationId)) idx.stationToBuildings.set(stationId, new Set());
+  idx.stationToBuildings.get(stationId)!.add(buildingId);
+
+  if (!idx.buildingToStations.has(buildingId)) idx.buildingToStations.set(buildingId, new Set());
+  idx.buildingToStations.get(buildingId)!.add(stationId);
+}
+
+/**
+ * 1) 优先：从 STA.STBuilding 建立 stationId -> buildingId 关系。
+ * - 若某 station 关联多个 buildingId（极少见），允许用分隔符输入："," / ";" / "，"
+ */
+function buildStationBuildingIndexFromSta(stas: Map<string, Sta>, buildings: Map<string, Building>): StationBuildingIndex {
+  const idx: StationBuildingIndex = {
+    stationToBuildings: new Map(),
+    buildingToStations: new Map(),
+    unknownBuildingIds: new Set(),
+  };
+
+  for (const sta of stas.values()) {
+    const raw = str(sta.STBuilding);
+    if (!raw) continue;
+
+    const bids = raw
+      .split(/[;,，]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    for (const bid of bids) {
+      if (!buildings.has(bid)) idx.unknownBuildingIds.add(bid);
+      addStationBuildingRel(idx, sta.stationID, bid);
+    }
+  }
+
+  return idx;
+}
+
+/**
+ * 2) 兜底：从 STB/SBP 的 Stations/stations 建立 stationId -> buildingId 关系。
+ * - 仅在“向上索引未覆盖”时补全；重复项自动去重。
+ * - 拆成单独函数：你后续若要性能优化，可直接跳过该补全步骤。
+ */
+function supplementStationBuildingIndexFromBuildingGroups(idx: StationBuildingIndex, buildings: Map<string, Building>) {
+  for (const b of buildings.values()) {
+    for (const sid of b.stationIds ?? []) {
+      if (!sid) continue;
+      // 若 STA.STBuilding 已建立了该 station 的归属关系，则仍允许补充“额外 building”
+      //（兼容旧数据/多归属数据），重复由 Set 自动去除。
+      addStationBuildingRel(idx, sid, b.id);
+    }
+  }
+}
+
+function buildStationBuildingIndex(stas: Map<string, Sta>, buildings: Map<string, Building>): StationBuildingIndex {
+  const idx = buildStationBuildingIndexFromSta(stas, buildings);
+  supplementStationBuildingIndexFromBuildingGroups(idx, buildings);
+  return idx;
+}
+
 function buildGraph(
   occsByLine: Map<string, Occ[]>,
   plfs: Map<string, Plf>,
@@ -1098,14 +1195,10 @@ function buildGraph(
   const g: Graph = { nodes: new Set(), edgesFrom: new Map() };
   const rideInfo = new Map<NodeKey, RideNodeInfo>();
 
-  // building -> station -> platforms
-  const stationToBuildings = new Map<string, Set<string>>();
-  for (const b of buildings.values()) {
-    for (const sid of b.stationIds) {
-      if (!stationToBuildings.has(sid)) stationToBuildings.set(sid, new Set());
-      stationToBuildings.get(sid)!.add(b.id);
-    }
-  }
+  // 车站归属：优先 STA.STBuilding（向上索引），再用 STB/SBP.Stations(stations) 向下补全
+  const idx = buildStationBuildingIndex(stas, buildings);
+  const stationToBuildings = idx.stationToBuildings;
+  const buildingToStations = idx.buildingToStations;
 
   const platformBuildings = new Map<string, Set<string>>();
   const buildingPlatforms = new Map<string, string[]>();
@@ -1122,7 +1215,13 @@ function buildGraph(
   // 为每个 building 聚合其包含的 Connect=true 平台（用于起终点候选与 walk edges）
   for (const b of buildings.values()) {
     const pids: string[] = [];
-    for (const sid of b.stationIds) {
+    const stationSet = buildingToStations.get(b.id);
+    if (!stationSet || stationSet.size === 0) {
+      buildingPlatforms.set(b.id, []);
+      continue;
+    }
+
+    for (const sid of stationSet) {
       const sta = stas.get(sid);
       if (!sta) continue;
       for (const pid of sta.platformIds) {
@@ -1780,7 +1879,9 @@ export async function computeRailPlanBetweenBuildings(opt: NavigationRailCompute
   if (startPlatforms.length === 0 || endPlatforms.size === 0) {
     return {
       ok: false,
-      reason: `起点或终点车站建筑下未找到可用站台（请检查 StationsGroup -> STA.platforms -> PLF.Situation/Connect）`,
+      reason:
+        `起点或终点车站建筑下未找到可用站台（请检查：` +
+        `STA.STBuilding（优先）/ STB|SBP.Stations(stations)（兜底） -> STA.platforms -> PLF.Situation/Connect）`,
       mode,
       totalDistance: 0,
       totalTimeSeconds: 0,
@@ -1802,7 +1903,10 @@ export async function computeRailPlanBetweenBuildings(opt: NavigationRailCompute
   if (!goal) {
     return {
       ok: false,
-      reason: `未找到可行路线（请检查：PLF.Situation/Available、线路单向、换乘归属 STB/SBP 的 StationsGroup 链路、getin/getout/Overtaking/NextOT）`,
+      reason:
+        `未找到可行路线（请检查：PLF.Situation/Available、线路单向、` +
+        `换乘归属（优先 STA.STBuilding / 兜底 STB|SBP.Stations(stations)）、` +
+        `getin/getout/Overtaking/NextOT）`,
       mode,
       totalDistance: 0,
       totalTimeSeconds: 0,
@@ -1881,8 +1985,9 @@ export type NavRailNewIntegratedPlan = NavRailPlan & {
 
 /**
  * 集成版入口：不再依赖 Navigation_Start.ts。
- * - 先用 STB/SBP 的 StationsGroup 做“站体解析”
+ * - 先用 STB/SBP（几何）做最近车站建筑解析（STB centroid / SBP coordinate）
  * - 起终点若不在站体内，则先走到最近站体代表点（STB centroid / SBP coordinate）
+ * - 车站归属优先使用 STA.STBuilding（向上索引），再用 STB|SBP.Stations(stations) 兜底补全
  * - 之后在 PLF+RLE 有向图上运行最短路（与 Navigation_Rail.ts 保持一致）
  */
 export async function computeRailPlanFromCoords(opt: NavigationRailNewIntegratedComputeOptions): Promise<NavRailNewIntegratedPlan> {
@@ -1908,7 +2013,8 @@ export async function computeRailPlanFromCoords(opt: NavigationRailNewIntegrated
   if (!startBuilding || !endBuilding) {
     return {
       ok: false,
-      reason: '未找到可用车站建筑（STB/SBP）用于起点或终点，请检查规则数据是否已加载/StationsGroup 是否存在。',
+      reason:
+        '未找到可用车站建筑（STB/SBP）用于起点或终点，请检查规则数据是否已加载，以及 STB/SBP 是否存在。',
       mode,
       totalDistance: 0,
       totalTimeSeconds: 0,
@@ -1942,7 +2048,8 @@ export async function computeRailPlanFromCoords(opt: NavigationRailNewIntegrated
   if (startPlatforms.length === 0 || endPlatforms.size === 0) {
     return {
       ok: false,
-      reason: '起点或终点车站建筑下未找到可用站台（请检查 StationsGroup -> STA.platforms -> PLF.Situation/Connect）。',
+      reason:
+        '起点或终点车站建筑下未找到可用站台（请检查：STA.STBuilding（优先）/ STB|SBP.Stations(stations)（兜底） -> STA.platforms -> PLF.Situation/Connect）。',
       mode,
       totalDistance: 0,
       totalTimeSeconds: 0,
@@ -1968,7 +2075,7 @@ export async function computeRailPlanFromCoords(opt: NavigationRailNewIntegrated
     return {
       ok: false,
       reason:
-        '未找到可行路线（请检查：PLF.Situation/Available、线路单向、换乘归属 STB/SBP 的 StationsGroup 链路、getin/getout/Overtaking/NextOT）。',
+        '未找到可行路线（请检查：PLF.Situation/Available、线路单向、换乘归属链路（STA.STBuilding 优先 / STB|SBP.Stations(stations) 兜底）、getin/getout/Overtaking/NextOT）。',
       mode,
       totalDistance: 0,
       totalTimeSeconds: 0,

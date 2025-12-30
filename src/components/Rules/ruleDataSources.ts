@@ -59,7 +59,9 @@ export const RULE_DATA_SOURCES: Record<string, WorldRuleDataSource> = {
     'ZRT7_Buids.json',
     'ZRT7_Stas.json',
     'ZRTL1_01A.json',
-    'ZRTL1_01B.json'
+    'ZRTL1_01B.json',
+    'test.json'
+
     ],
   },
 

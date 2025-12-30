@@ -1,0 +1,502 @@
+[
+  {
+    "staBuildingID": "ZR123STB_123",
+    "staBuildingName": "123",
+    "Conpoints": [
+      [
+        -602,
+        -63,
+        -1550.5
+      ],
+      [
+        -606,
+        -63,
+        -1518
+      ],
+      [
+        -552,
+        -63,
+        -1510
+      ],
+      [
+        -560,
+        -63,
+        -1553
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZR123123STA_123"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "plfRoundID": "ZR123123PFB_123",
+    "plfRoundName": "123",
+    "LineID": "ZR123123_123_01",
+    "Flrpoints": [
+      [
+        -602,
+        -63,
+        -1550.5
+      ],
+      [
+        -606,
+        -63,
+        -1518
+      ],
+      [
+        -552,
+        -63,
+        -1510
+      ],
+      [
+        -560,
+        -63,
+        -1553
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "platformID": "ZR123123PLF*123*D",
+    "platformName": "123-1站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": -589.5,
+      "z": -1492
+    },
+    "lines": [
+      {
+        "ID": "ZR1231",
+        "stationCode": 1,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "platformID": "ZR123123PLF*123*U",
+    "platformName": "123-1站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": -589.5,
+      "z": -1492
+    },
+    "lines": [
+      {
+        "ID": "ZR1231",
+        "stationCode": 1,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "stationID": "ZR123123STA_123",
+    "stationName": "123",
+    "STBuilding": "ZR123STB_123",
+    "coordinate": {
+      "x": -589.5,
+      "z": -1492
+    },
+    "platforms": [
+      {
+        "ID": "ZR123123PLF*123*D"
+      },
+      {
+        "ID": "ZR123123PLF*123*U"
+      }
+    ],
+    "Type": "Points",
+    "Class": "STA",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "plfRoundID": "ZR123123PFB_13",
+    "plfRoundName": "123",
+    "LineID": "ZR123123_123_01",
+    "Flrpoints": [
+      [
+        -632,
+        -63,
+        -1477
+      ],
+      [
+        -640,
+        -63,
+        -1441
+      ],
+      [
+        -573,
+        -63,
+        -1439.5
+      ],
+      [
+        -563,
+        -63,
+        -1464
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "platformID": "ZR123123PLF*13*D",
+    "platformName": "123-1站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": -682.5,
+      "z": -1448
+    },
+    "lines": [
+      {
+        "ID": "ZR1231",
+        "stationCode": 1,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "platformID": "ZR123123PLF*13*U",
+    "platformName": "123-1站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": -682.5,
+      "z": -1448
+    },
+    "lines": [
+      {
+        "ID": "ZR1231",
+        "stationCode": 1,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "stationID": "ZR123123STA_13",
+    "stationName": "123",
+    "STBuilding": "123",
+    "coordinate": {
+      "x": -682.5,
+      "z": -1448
+    },
+    "platforms": [
+      {
+        "ID": "ZR123123PLF*13*D"
+      },
+      {
+        "ID": "ZR123123PLF*13*U"
+      }
+    ],
+    "Type": "Points",
+    "Class": "STA",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "staBuildingID": "ZR123STB_123",
+    "staBuildingName": "123",
+    "Conpoints": [
+      [
+        -682,
+        -63,
+        -1494.5
+      ],
+      [
+        -678,
+        -63,
+        -1474.5
+      ],
+      [
+        -647,
+        -63,
+        -1496.5
+      ],
+      [
+        -658.5,
+        -63,
+        -1523.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZR123123STA_123"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "plfRoundID": "ZR123123PFB_123",
+    "plfRoundName": "123",
+    "LineID": "ZR123123_123_01",
+    "Flrpoints": [
+      [
+        -682,
+        -63,
+        -1494.5
+      ],
+      [
+        -678,
+        -63,
+        -1474.5
+      ],
+      [
+        -647,
+        -63,
+        -1496.5
+      ],
+      [
+        -658.5,
+        -63,
+        -1523.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "platformID": "ZR123123PLF*123*D",
+    "platformName": "123-123站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": -696.5,
+      "z": -1508
+    },
+    "lines": [
+      {
+        "ID": "ZR1231",
+        "stationCode": 1,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "platformID": "ZR123123PLF*123*U",
+    "platformName": "123-123站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": -696.5,
+      "z": -1508
+    },
+    "lines": [
+      {
+        "ID": "ZR1231",
+        "stationCode": 1,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "stationID": "ZR123123STA_123",
+    "stationName": "123",
+    "STBuilding": "ZR123STB_123",
+    "coordinate": {
+      "x": -685.5,
+      "z": -1444
+    },
+    "platforms": [
+      {
+        "ID": "ZR123123PLF*123*D"
+      },
+      {
+        "ID": "ZR123123PLF*123*U"
+      }
+    ],
+    "Type": "Points",
+    "Class": "STA",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "LineID": "ZR123123_123_01",
+    "LineName": "123",
+    "bureau": "123",
+    "line": "123",
+    "color": "123",
+    "direction": 3,
+    "startplf": "123",
+    "endplf": "123",
+    "PLpoints": [
+      [
+        -641.5,
+        -64,
+        -1575.5
+      ],
+      [
+        -669.5,
+        -64,
+        -1539.5
+      ]
+    ],
+    "Type": "Polyline",
+    "Class": "RLE",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "LineID": "ZR123123_123_01",
+    "LineName": "123",
+    "bureau": "123",
+    "line": "123",
+    "color": "123",
+    "direction": 3,
+    "startplf": "123",
+    "endplf": "123",
+    "PLpoints": [
+      [
+        -702,
+        -64,
+        -1533
+      ],
+      [
+        -699.5,
+        -64,
+        -1472.5
+      ]
+    ],
+    "Type": "Polyline",
+    "Class": "RLE",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "LineID": "ZR123123_123_01_D",
+    "LineName": "123-下行",
+    "bureau": "123",
+    "line": "123",
+    "color": "123",
+    "direction": 0,
+    "startplf": "123",
+    "endplf": "123",
+    "PLpoints": [
+      [
+        -702,
+        -64,
+        -1533
+      ],
+      [
+        -699.5,
+        -64,
+        -1472.5
+      ]
+    ],
+    "Type": "Polyline",
+    "Class": "RLE",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  },
+  {
+    "LineID": "ZR123123_123_01_U",
+    "LineName": "123-上行",
+    "bureau": "123",
+    "line": "123",
+    "color": "123",
+    "direction": 1,
+    "startplf": "123",
+    "endplf": "123",
+    "PLpoints": [
+      [
+        -613,
+        -64,
+        -1637
+      ],
+      [
+        -541,
+        -64,
+        -1608.5
+      ]
+    ],
+    "Type": "Polyline",
+    "Class": "RLE",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "123"
+  }
+]

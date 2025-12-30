@@ -13,6 +13,11 @@ export type FeatureKey =
   | '车站建筑'
   | '车站建筑点'
   | '车站建筑楼层'
+  | '地物点'
+  | '地物线'
+  | '地物面'
+  | '建筑'
+  | '建筑楼层'
   // 下面这些是旧/占位 subtype（保留可选项，但不参与新 JSON 规范的必填校验）
   | '地标'
   | '栈道'
@@ -31,7 +36,12 @@ export type ImportFormat =
   | '站台轮廓'
   | '车站建筑'
   | '车站建筑点'
-  | '车站建筑楼层';
+    | '车站建筑楼层'
+  | '地物点'
+  | '地物线'
+  | '地物面'
+  | '建筑'
+  | '建筑楼层';
 
 
 export type Coord2D = { x: number; z: number; y?: number };
@@ -128,6 +138,11 @@ const CLASS_CODE_BY_FEATURE: Partial<Record<FeatureKey, string>> = {
   车站建筑楼层: 'STF',
   站台轮廓:'PFB',
   车站建筑点: 'SBP',
+  地物点: 'ISP',
+  地物线: 'ISL',
+  地物面: 'ISG',
+  建筑: 'BUD',
+  建筑楼层: 'FLR',
 };
 
 // World：按 MapContainer 的 currentWorld id 映射到新规范的整数
@@ -455,6 +470,42 @@ export const validateImportItemDetailed = (
     structuralErrors.push('hydrate 失败：无法解析附加信息结构');
   }
 
+  // ---- 兼容旧规范：STA 允许缺省 STBuilding（但若显式提供且为空，则仍视为缺失）----
+  const legacyAllowMissingSTBuilding =
+    def.classCode === 'STA' &&
+    item &&
+    typeof item === 'object' &&
+    !('STBuilding' in item) &&
+    !('StBuilding' in item) &&
+    !('stBuilding' in item) &&
+    !('stationBuilding' in item) &&
+    !('stationBuildingId' in item);
+
+  if (legacyAllowMissingSTBuilding) {
+    for (let i = missing.length - 1; i >= 0; i--) {
+      const m = missing[i];
+      if (m.kind === 'field' && m.key === 'STBuilding') missing.splice(i, 1);
+    }
+  }
+
+
+  // ---- 兼容旧规范：STF 允许缺省 staBuildingID（但若显式提供且为空，则仍视为缺失）----
+  const legacyAllowMissingStaBuildingID =
+    def.classCode === 'STF' &&
+    item &&
+    typeof item === 'object' &&
+    !('staBuildingID' in item) &&
+    !('staBuildingId' in item) &&
+    !('STBuilding' in item) &&
+    !('BuildingID' in item);
+
+  if (legacyAllowMissingStaBuildingID) {
+    for (let i = missing.length - 1; i >= 0; i--) {
+      const m = missing[i];
+      if (m.kind === 'field' && m.key === 'staBuildingID') missing.splice(i, 1);
+    }
+  }
+
   const ok = structuralErrors.length === 0 && missing.length === 0;
   return { ok, missing, structuralErrors, mode, coords, hydrated };
 };
@@ -503,6 +554,7 @@ export const FORMAT_REGISTRY: Record<FeatureKey, FormatDef> = {
     fields: [
       { key: 'stationID', label: '车站ID', type: 'text' },                // [必填]
       { key: 'stationName', label: '车站名', type: 'text' },              // [必填]
+      { key: 'STBuilding', label: '车站所属车站建体(STBuilding)', type: 'text' }, // [必填]（过渡期：导入允许缺省）
       { key: 'elevation', label: '高度(y)', type: 'number', optional: true }, // [非必填]
     ],
     groups: [
@@ -539,6 +591,14 @@ export const FORMAT_REGISTRY: Record<FeatureKey, FormatDef> = {
       values: {
         stationID: featureInfo?.stationID ?? '',
         stationName: featureInfo?.stationName ?? '',
+        // 新规范：车站归属车站建体（STB/SBP 的 ID）。兼容旧字段/缺失。
+        STBuilding:
+          featureInfo?.STBuilding ??
+          featureInfo?.StBuilding ??
+          featureInfo?.stBuilding ??
+          featureInfo?.stationBuilding ??
+          featureInfo?.stationBuildingId ??
+          '',
         elevation: featureInfo?.elevation ?? '',
       },
       groups: {
@@ -822,6 +882,7 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
         optional: true, // 新规范为 [非必填]
         fields: [
           { key: 'ID', label: '楼层ID', type: 'text', optional: true },
+          { key: 'Group', label: '分组(Group)', type: 'text', optional: true },
         ],
       },
 
@@ -840,7 +901,13 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
       const Conpoints = coords.map(p => [p.x, (Number.isFinite(p.y as any) ? (p.y as number) : -63), p.z] as [number, number, number]);
 
       const Floors = Array.isArray(groups.Floors)
-        ? groups.Floors.map((it: any) => ({ ID: it?.ID ?? '' }))
+        ? groups.Floors.map((it: any) => {
+            const ID = String(it?.ID ?? '').trim();
+            const Group = String(it?.Group ?? '').trim();
+            const o: any = { ID };
+            if (Group) o.Group = Group;
+            return o;
+          })
         : [];
 
       const Stations = Array.isArray(groups.Stations)
@@ -859,7 +926,10 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
       },
       groups: {
         Floors: Array.isArray(featureInfo?.Floors)
-          ? featureInfo.Floors.map((f: any) => ({ ID: f?.ID ?? '' }))
+          ? featureInfo.Floors.map((f: any) => ({
+              ID: f?.ID ?? '',
+              Group: f?.Group ?? '',
+            }))
           : [],
 
         Stations: Array.isArray(featureInfo?.Stations)
@@ -905,6 +975,18 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
       { key: 'elevation', label: '高度(y)', type: 'number', optional: true }, // [非必填]
     ],
     groups: [
+
+{
+  key: 'Floors',
+  label: '包含楼层 Floors',
+  addButtonText: '添加楼层条目',
+  optional: true, // [非必填]
+  fields: [
+    { key: 'ID', label: '楼层ID', type: 'text' },
+    { key: 'Group', label: '分组(Group)', type: 'text', optional: true },
+  ],
+},
+
       {
         key: 'stations',
         label: '包含站台 stations',
@@ -926,11 +1008,24 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
           }))
         : [];
 
-      const out = {
+      const Floors = Array.isArray(groups.Floors)
+        ? groups.Floors.map((it: any) => {
+            const ID = String(it?.ID ?? '').trim();
+            const Group = String(it?.Group ?? '').trim();
+            const o: any = { ID };
+            if (Group) o.Group = Group;
+            return o;
+          })
+        : [];
+
+      const out: any = {
         ...base,
         coordinate: { x: p0?.x ?? 0, z: p0?.z ?? 0 },
         stations,
       };
+
+      // Floors 为可选：仅在存在条目时输出
+      if (Floors.length) out.Floors = Floors;
 
       return withSystemFields(FORMAT_REGISTRY['车站建筑点'], out, { op, mode, worldId, editorId, prevFeatureInfo, now });
     },
@@ -942,6 +1037,18 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
         elevation: featureInfo?.elevation ?? '',
       },
       groups: {
+        Floors: Array.isArray(featureInfo?.Floors)
+          ? featureInfo.Floors.map((f: any) => ({
+              ID: f?.ID ?? '',
+              Group: f?.Group ?? '',
+            }))
+          : (Array.isArray(featureInfo?.floors)
+            ? featureInfo.floors.map((f: any) => ({
+                ID: f?.ID ?? f?.id ?? '',
+                Group: f?.Group ?? f?.group ?? '',
+              }))
+            : []),
+
         stations: Array.isArray(featureInfo?.stations)
           ? featureInfo.stations.map((s: any) => ({ ID: s?.ID ?? s?.id ?? '' }))
           : (Array.isArray(featureInfo?.Stations)
@@ -967,6 +1074,9 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
 
       const sts = (item as any).stations ?? (item as any).Stations;
       if (!Array.isArray(sts)) return 'stations 必须是数组';
+
+      const fls = (item as any).Floors ?? (item as any).floors;
+      if (fls !== undefined && !Array.isArray(fls)) return 'Floors 必须是数组';
       
       return;
     },
@@ -985,6 +1095,8 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
       { key: 'staBFloorID', label: '楼层ID(staBFloorID)', type: 'text' },
       { key: 'staBFloorName', label: '楼层名(staBFloorName)', type: 'text' },
       { key: 'NofFloor', label: '楼层名(NofFloor)', type: 'text' },
+      { key: 'staBuildingID', label: '所属车站建筑(staBuildingID)', type: 'text' },
+      { key: 'Situation', label: '状态(Situation)', type: 'text', optional: true },
       { key: 'elevation', label: '高度(y)', type: 'number', optional: true },
       { key: 'height', label: '层高(height)', type: 'number', optional: true },
     ],
@@ -998,9 +1110,12 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
     },
     hydrate: (featureInfo) => ({
       values: {
-        staBFloorID: featureInfo?.staBFloorID ?? '',
-        staBFloorName: featureInfo?.staBFloorName ?? '',
+        // 兼容旧字段：FloorID/FloorName 等
+        staBFloorID: featureInfo?.staBFloorID ?? featureInfo?.FloorID ?? featureInfo?.floorID ?? '',
+        staBFloorName: featureInfo?.staBFloorName ?? featureInfo?.FloorName ?? featureInfo?.floorName ?? '',
         NofFloor: featureInfo?.NofFloor ?? '',
+        staBuildingID: featureInfo?.staBuildingID ?? featureInfo?.staBuildingId ?? featureInfo?.STBuilding ?? featureInfo?.BuildingID ?? '',
+        Situation: featureInfo?.Situation ?? '',
         elevation: featureInfo?.elevation ?? '',
         height: featureInfo?.height ?? '',
       },
@@ -1020,13 +1135,299 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
     },
     validateImportItem: (item) => {
       if (!item || typeof item !== 'object') return '不是对象';
-      if (!item.staBFloorID) return '缺少 staBFloorID';
-      if (!item.staBFloorName) return '缺少 staBFloorName';
-      if (!item.NofFloor) return '缺少 NofFloor';
-      if (!Array.isArray(item.Flrpoints) || item.Flrpoints.length < 3) return 'Flrpoints 必须是数组且至少 3 点';
+      const id = String((item as any).staBFloorID ?? (item as any).FloorID ?? (item as any).floorID ?? '').trim();
+      if (!id) return '缺少 staBFloorID';
+
+      const name = String((item as any).staBFloorName ?? (item as any).FloorName ?? (item as any).floorName ?? '').trim();
+      if (!name) return '缺少 staBFloorName';
+
+      if (!String((item as any).NofFloor ?? '').trim()) return '缺少 NofFloor';
+
+      // 兼容旧 STF：允许缺省 staBuildingID（新建/编辑会在必填校验中要求）
+      if (!Array.isArray((item as any).Flrpoints) || (item as any).Flrpoints.length < 3) return 'Flrpoints 必须是数组且至少 3 点';
       return;
     },
   },
+
+// ===== 地物点 / 线 / 面 & 建筑 / 建筑楼层（新增） =====
+地物点: {
+  key: '地物点',
+  label: '地物点',
+  modes: ['point'],
+  hideTempOutput: true,
+  classCode: CLASS_CODE_BY_FEATURE['地物点'], // ISP
+  fields: [
+    { key: 'PointID', label: '要素点ID(PointID)', type: 'text' },
+    { key: 'PointName', label: '要素点名(PointName)', type: 'text' },
+    { key: 'PointKind', label: '要素类型(PointKind)', type: 'text' },
+    { key: 'PointSKind', label: '要素子类型(PointSKind)', type: 'text' },
+    { key: 'Situation', label: '状态(Situation)', type: 'text', optional: true },
+    { key: 'elevation', label: '高度(y)', type: 'number', optional: true },
+  ],
+  groups: [],
+  buildFeatureInfo: ({ op, mode, coords, values, worldId, editorId, prevFeatureInfo, now }) => {
+    const base = pickByFields(values, FORMAT_REGISTRY['地物点'].fields);
+    const p0 = coords[0];
+    const out = {
+      ...base,
+      coordinate: { x: p0?.x ?? 0, z: p0?.z ?? 0 },
+    };
+    return withSystemFields(FORMAT_REGISTRY['地物点'], out, { op, mode, worldId, editorId, prevFeatureInfo, now });
+  },
+  hydrate: (featureInfo) => ({
+    values: {
+      PointID: featureInfo?.PointID ?? '',
+      PointName: featureInfo?.PointName ?? '',
+      PointKind: featureInfo?.PointKind ?? '',
+      PointSKind: featureInfo?.PointSKind ?? '',
+      Situation: featureInfo?.Situation ?? '',
+      elevation: featureInfo?.elevation ?? '',
+    },
+    groups: {},
+  }),
+  coordsFromFeatureInfo: (featureInfo) => {
+    const c = featureInfo?.coordinate;
+    if (!c) return [];
+    return [{ x: Number(c.x), z: Number(c.z) }].filter(p => isFiniteNum(p.x) && isFiniteNum(p.z));
+  },
+  validateImportItem: (item) => {
+    if (!item || typeof item !== 'object') return '不是对象';
+    if (!String((item as any).PointID ?? '').trim()) return '缺少 PointID';
+    if (!String((item as any).PointName ?? '').trim()) return '缺少 PointName';
+    if (!String((item as any).PointKind ?? '').trim()) return '缺少 PointKind';
+    if (!String((item as any).PointSKind ?? '').trim()) return '缺少 PointSKind';
+    if (!item.coordinate || !isFiniteNum((item as any).coordinate.x) || !isFiniteNum((item as any).coordinate.z)) return '缺少合法 coordinate.x / coordinate.z';
+    return;
+  },
+},
+
+地物线: {
+  key: '地物线',
+  label: '地物线',
+  modes: ['polyline'],
+  hideTempOutput: true,
+  classCode: CLASS_CODE_BY_FEATURE['地物线'], // ISL
+  fields: [
+    { key: 'PLineID', label: '线要素ID(PLineID)', type: 'text' },
+    { key: 'PLineName', label: '线要素名(PLineName)', type: 'text' },
+    { key: 'PLineKind', label: '线要素类型(PLineKind)', type: 'text' },
+    { key: 'PLineSKind', label: '线要素子类型(PLineSKind)', type: 'text' },
+    { key: 'Situation', label: '状态(Situation)', type: 'text', optional: true },
+  ],
+  groups: [],
+  buildFeatureInfo: ({ op, mode, coords, values, worldId, editorId, prevFeatureInfo, now }) => {
+    const base = pickByFields(values, FORMAT_REGISTRY['地物线'].fields);
+    const Linepoints = coords.map(p => [p.x, (Number.isFinite(p.y as any) ? (p.y as number) : -64), p.z] as [number, number, number]);
+    const out = { ...base, Linepoints };
+    return withSystemFields(FORMAT_REGISTRY['地物线'], out, { op, mode, worldId, editorId, prevFeatureInfo, now });
+  },
+  hydrate: (featureInfo) => ({
+    values: {
+      PLineID: featureInfo?.PLineID ?? '',
+      PLineName: featureInfo?.PLineName ?? '',
+      PLineKind: featureInfo?.PLineKind ?? '',
+      PLineSKind: featureInfo?.PLineSKind ?? '',
+      Situation: featureInfo?.Situation ?? '',
+    },
+    groups: {},
+  }),
+  coordsFromFeatureInfo: (featureInfo) => {
+    const pts = featureInfo?.Linepoints;
+    if (!Array.isArray(pts)) return [];
+    const out: Coord2D[] = [];
+    for (const p of pts) {
+      const x = Number(p?.[0]);
+      const y = Number(p?.[1]);
+      const z = Number(p?.[2]);
+      if (!isFiniteNum(x) || !isFiniteNum(z)) continue;
+      out.push({ x, z, y: Number.isFinite(y) ? y : -64 });
+    }
+    return out;
+  },
+  validateImportItem: (item) => {
+    if (!item || typeof item !== 'object') return '不是对象';
+    if (!String((item as any).PLineID ?? '').trim()) return '缺少 PLineID';
+    if (!String((item as any).PLineName ?? '').trim()) return '缺少 PLineName';
+    if (!String((item as any).PLineKind ?? '').trim()) return '缺少 PLineKind';
+    if (!String((item as any).PLineSKind ?? '').trim()) return '缺少 PLineSKind';
+    if (!Array.isArray((item as any).Linepoints) || (item as any).Linepoints.length < 2) return 'Linepoints 必须是数组且至少 2 点';
+    return;
+  },
+},
+
+地物面: {
+  key: '地物面',
+  label: '地物面',
+  modes: ['polygon'],
+  hideTempOutput: true,
+  classCode: CLASS_CODE_BY_FEATURE['地物面'], // ISG
+  fields: [
+    { key: 'PGonID', label: '地物面ID(PGonID)', type: 'text' },
+    { key: 'PGonName', label: '地物面名(PGonName)', type: 'text' },
+    { key: 'PGonKind', label: '地物面类型(PGonKind)', type: 'text' },
+    { key: 'PGonSKind', label: '地物面子类型(PGonSKind)', type: 'text' },
+    { key: 'Situation', label: '状态(Situation)', type: 'text', optional: true },
+  ],
+  groups: [],
+  buildFeatureInfo: ({ op, mode, coords, values, worldId, editorId, prevFeatureInfo, now }) => {
+    const base = pickByFields(values, FORMAT_REGISTRY['地物面'].fields);
+    const Conpoints = coords.map(p => [p.x, (Number.isFinite(p.y as any) ? (p.y as number) : -63), p.z] as [number, number, number]);
+    const out = { ...base, Conpoints };
+    return withSystemFields(FORMAT_REGISTRY['地物面'], out, { op, mode, worldId, editorId, prevFeatureInfo, now });
+  },
+  hydrate: (featureInfo) => ({
+    values: {
+      PGonID: featureInfo?.PGonID ?? '',
+      PGonName: featureInfo?.PGonName ?? '',
+      PGonKind: featureInfo?.PGonKind ?? '',
+      PGonSKind: featureInfo?.PGonSKind ?? '',
+      Situation: featureInfo?.Situation ?? '',
+    },
+    groups: {},
+  }),
+  coordsFromFeatureInfo: (featureInfo) => {
+    const pts = featureInfo?.Conpoints;
+    if (!Array.isArray(pts)) return [];
+    return pts
+      .map((p: any) => {
+        const x = Number(p?.[0]);
+        const y = Number(p?.[1]);
+        const z = Number(p?.[2]);
+        return Number.isFinite(y) ? ({ x, z, y }) : ({ x, z });
+      })
+      .filter((p: any) => isFiniteNum(p.x) && isFiniteNum(p.z));
+  },
+  validateImportItem: (item) => {
+    if (!item || typeof item !== 'object') return '不是对象';
+    if (!String((item as any).PGonID ?? '').trim()) return '缺少 PGonID';
+    if (!String((item as any).PGonName ?? '').trim()) return '缺少 PGonName';
+    if (!String((item as any).PGonKind ?? '').trim()) return '缺少 PGonKind';
+    if (!String((item as any).PGonSKind ?? '').trim()) return '缺少 PGonSKind';
+    if (!Array.isArray((item as any).Conpoints) || (item as any).Conpoints.length < 3) return 'Conpoints 必须是数组且至少 3 点';
+    return;
+  },
+},
+
+建筑: {
+  key: '建筑',
+  label: '建筑',
+  modes: ['polygon'],
+  hideTempOutput: true,
+  classCode: CLASS_CODE_BY_FEATURE['建筑'], // BUD
+  fields: [
+    { key: 'BuildingID', label: '建筑ID(BuildingID)', type: 'text' },
+    { key: 'BuildingName', label: '建筑名(BuildingName)', type: 'text' },
+    { key: 'BuildingKind', label: '建筑类型(BuildingKind)', type: 'text' },
+    { key: 'BuildingSKind', label: '建筑子类型(BuildingSKind)', type: 'text' },
+    { key: 'Situation', label: '状态(Situation)', type: 'text', optional: true },
+    { key: 'elevation', label: '高度(y)', type: 'number', optional: true },
+    { key: 'height', label: '高度(height)', type: 'number', optional: true },
+  ],
+  groups: [],
+  buildFeatureInfo: ({ op, mode, coords, values, worldId, editorId, prevFeatureInfo, now }) => {
+    const base = pickByFields(values, FORMAT_REGISTRY['建筑'].fields);
+    const Conpoints = coords.map(p => [p.x, (Number.isFinite(p.y as any) ? (p.y as number) : -63), p.z] as [number, number, number]);
+    const out = { ...base, Conpoints };
+    return withSystemFields(FORMAT_REGISTRY['建筑'], out, { op, mode, worldId, editorId, prevFeatureInfo, now });
+  },
+  hydrate: (featureInfo) => ({
+    values: {
+      BuildingID: featureInfo?.BuildingID ?? '',
+      BuildingName: featureInfo?.BuildingName ?? '',
+      BuildingKind: featureInfo?.BuildingKind ?? '',
+      BuildingSKind: featureInfo?.BuildingSKind ?? '',
+      Situation: featureInfo?.Situation ?? '',
+      elevation: featureInfo?.elevation ?? '',
+      height: featureInfo?.height ?? '',
+    },
+    groups: {},
+  }),
+  coordsFromFeatureInfo: (featureInfo) => {
+    const pts = featureInfo?.Conpoints;
+    if (!Array.isArray(pts)) return [];
+    return pts
+      .map((p: any) => {
+        const x = Number(p?.[0]);
+        const y = Number(p?.[1]);
+        const z = Number(p?.[2]);
+        return Number.isFinite(y) ? ({ x, z, y }) : ({ x, z });
+      })
+      .filter((p: any) => isFiniteNum(p.x) && isFiniteNum(p.z));
+  },
+  validateImportItem: (item) => {
+    if (!item || typeof item !== 'object') return '不是对象';
+    if (!String((item as any).BuildingID ?? '').trim()) return '缺少 BuildingID';
+    if (!String((item as any).BuildingName ?? '').trim()) return '缺少 BuildingName';
+    if (!String((item as any).BuildingKind ?? '').trim()) return '缺少 BuildingKind';
+    if (!String((item as any).BuildingSKind ?? '').trim()) return '缺少 BuildingSKind';
+    if (!Array.isArray((item as any).Conpoints) || (item as any).Conpoints.length < 3) return 'Conpoints 必须是数组且至少 3 点';
+    return;
+  },
+},
+
+建筑楼层: {
+  key: '建筑楼层',
+  label: '建筑楼层',
+  modes: ['polygon'],
+  hideTempOutput: true,
+  classCode: CLASS_CODE_BY_FEATURE['建筑楼层'], // FLR
+  fields: [
+    { key: 'FloorID', label: '楼层ID(FloorID)', type: 'text' },
+    { key: 'FloorName', label: '楼层名(FloorName)', type: 'text' },
+    { key: 'NofFloor', label: '楼层名(NofFloor)', type: 'text' },
+    { key: 'FloorKind', label: '楼层类型(FloorKind)', type: 'text' },
+    { key: 'FloorSKind', label: '楼层子类型(FloorSKind)', type: 'text' },
+    { key: 'BuildingID', label: '所属建筑(BuildingID)', type: 'text' },
+    { key: 'Situation', label: '状态(Situation)', type: 'text', optional: true },
+    { key: 'elevation', label: '高度(y)', type: 'number', optional: true },
+    { key: 'height', label: '高度(height)', type: 'number', optional: true },
+  ],
+  groups: [],
+  buildFeatureInfo: ({ op, mode, coords, values, worldId, editorId, prevFeatureInfo, now }) => {
+    const base = pickByFields(values, FORMAT_REGISTRY['建筑楼层'].fields);
+    const Flrpoints = coords.map(p => [p.x, (Number.isFinite(p.y as any) ? (p.y as number) : -63), p.z] as [number, number, number]);
+    const out = { ...base, Flrpoints };
+    return withSystemFields(FORMAT_REGISTRY['建筑楼层'], out, { op, mode, worldId, editorId, prevFeatureInfo, now });
+  },
+  hydrate: (featureInfo) => ({
+    values: {
+      FloorID: featureInfo?.FloorID ?? '',
+      FloorName: featureInfo?.FloorName ?? '',
+      NofFloor: featureInfo?.NofFloor ?? '',
+      FloorKind: featureInfo?.FloorKind ?? '',
+      FloorSKind: featureInfo?.FloorSKind ?? '',
+      BuildingID: featureInfo?.BuildingID ?? '',
+      Situation: featureInfo?.Situation ?? '',
+      elevation: featureInfo?.elevation ?? '',
+      height: featureInfo?.height ?? '',
+    },
+    groups: {},
+  }),
+  coordsFromFeatureInfo: (featureInfo) => {
+    const pts = featureInfo?.Flrpoints;
+    if (!Array.isArray(pts)) return [];
+    return pts
+      .map((p: any) => {
+        const x = Number(p?.[0]);
+        const y = Number(p?.[1]);
+        const z = Number(p?.[2]);
+        return Number.isFinite(y) ? ({ x, z, y }) : ({ x, z });
+      })
+      .filter((p: any) => isFiniteNum(p.x) && isFiniteNum(p.z));
+  },
+  validateImportItem: (item) => {
+    if (!item || typeof item !== 'object') return '不是对象';
+    if (!String((item as any).FloorID ?? '').trim()) return '缺少 FloorID';
+    if (!String((item as any).FloorName ?? '').trim()) return '缺少 FloorName';
+    if (!String((item as any).NofFloor ?? '').trim()) return '缺少 NofFloor';
+    if (!String((item as any).FloorKind ?? '').trim()) return '缺少 FloorKind';
+    if (!String((item as any).FloorSKind ?? '').trim()) return '缺少 FloorSKind';
+    if (!String((item as any).BuildingID ?? '').trim()) return '缺少 BuildingID';
+    if (!Array.isArray((item as any).Flrpoints) || (item as any).Flrpoints.length < 3) return 'Flrpoints 必须是数组且至少 3 点';
+    return;
+  },
+},
+
 
 
   // ===== 其余“占位型 subtype”（按默认处理，但让下拉里可选）=====

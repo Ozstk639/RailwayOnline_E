@@ -40,11 +40,15 @@ export function DraggablePanel({
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!isDesktop) return;
 
-    // 只有点击面板顶部区域才能拖拽（前 40px）
+    // 点击输入控件/按钮等交互元素时，不进入拖拽逻辑（避免抢焦点/阻止输入）
+    const target = e.target as HTMLElement | null;
+    if (target?.closest('input, textarea, select, button, a, [role="button"]')) return;
+
+    // 只有点击面板顶部标题栏区域才能拖拽（前 48px）
     const rect = panelRef.current?.getBoundingClientRect();
     if (!rect) return;
     const relativeY = e.clientY - rect.top;
-    if (relativeY > 48) return; // 只允许在标题栏区域拖拽
+    if (relativeY > 48) return;
 
     e.preventDefault();
     setIsDragging(true);
@@ -91,6 +95,13 @@ export function DraggablePanel({
     onFocus?.();
   }, [onFocus]);
 
+  // 根节点鼠标按下：先置顶，再按需启动拖拽（仅标题栏区域且不点到交互控件）
+  const handleRootMouseDown = useCallback((e: React.MouseEvent) => {
+    handlePanelClick();
+    handleMouseDown(e);
+  }, [handlePanelClick, handleMouseDown]);
+
+
   // 手机端：不渲染（手机端内容在 MapContainer 的 sm:hidden 区域单独渲染）
   if (!isDesktop) {
     return null;
@@ -108,18 +119,8 @@ export function DraggablePanel({
         zIndex,
         cursor: isDragging ? 'grabbing' : 'default',
       }}
-      onMouseDown={handlePanelClick}
-    >
-      {/* 拖拽手柄区域（覆盖在顶部左侧，留出右侧按钮区域） */}
-      <div
-        className="absolute top-0 left-0 h-12 cursor-grab"
-        style={{
-          cursor: isDragging ? 'grabbing' : 'grab',
-          right: '80px', // 留出右侧按钮区域
-        }}
-        onMouseDown={handleMouseDown}
-      />
-      {children}
+      onMouseDown={handleRootMouseDown}
+    >      {children}
     </div>
   );
 }

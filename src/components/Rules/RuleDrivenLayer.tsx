@@ -115,6 +115,77 @@ const FLOOR_PICK_ACTIVATE_PX = 70; // “接近中心即可激活”的半径（
 const FLOOR_PICK_KEEP_PX = 120;    // “保持楼层菜单”的半径（像素，建议 > ACTIVATE）
 const FLOOR_PICK_VIEW_PAD = 0.25;  // 预筛选：视野 bounds 的 padding，减少遍历成本
 
+
+// ======================= 楼层关联：向上索引 + 向下补全（可拆卸） =======================
+const FLOOR_BUILDING_CLASSES = ['STB', 'SBP', 'BUD'] as const;
+const FLOOR_FLOOR_CLASSES = ['STF', 'FLR'] as const;
+
+type FloorBuildingClass = (typeof FLOOR_BUILDING_CLASSES)[number];
+type FloorClass = (typeof FLOOR_FLOOR_CLASSES)[number];
+
+function getBuildingIdCandidatesForFloorView(b: FeatureRecord): Set<string> {
+  const fi: any = b.featureInfo;
+  const cls = String(b.meta?.Class ?? '').trim() as FloorBuildingClass;
+  const vals: string[] = [];
+
+  if (cls === 'STB') {
+    vals.push(fi?.staBuildingID, fi?.ID);
+  } else if (cls === 'SBP') {
+    vals.push(fi?.staBuildingPointID, fi?.staBuildingPointId, fi?.staBuildingID, fi?.ID);
+  } else if (cls === 'BUD') {
+    vals.push(fi?.BuildingID, fi?.ID);
+  } else {
+    vals.push(fi?.ID);
+  }
+
+  const out = new Set<string>();
+  for (const v of vals) {
+    const s = String(v ?? '').trim();
+    if (s) out.add(s);
+  }
+  return out;
+}
+
+function getFloorIdForFloorView(f: FeatureRecord): string {
+  const fi: any = f.featureInfo;
+  const cls = String(f.meta?.Class ?? '').trim() as FloorClass;
+  if (cls === 'STF') return String(fi?.staBFloorID ?? fi?.ID ?? '').trim();
+  if (cls === 'FLR') return String(fi?.FloorID ?? fi?.ID ?? '').trim();
+  return String(fi?.ID ?? '').trim();
+}
+
+function getFloorParentIdForFloorView(f: FeatureRecord): string {
+  const fi: any = f.featureInfo;
+  const cls = String(f.meta?.Class ?? '').trim() as FloorClass;
+  if (cls === 'STF') return String(fi?.staBuildingID ?? '').trim();
+  if (cls === 'FLR') return String(fi?.BuildingID ?? '').trim();
+  return '';
+}
+
+function extractDownwardFloorRefsFromBuilding(b: FeatureRecord): string[] {
+  const fi: any = b.featureInfo;
+  const arr = Array.isArray(fi?.Floors) ? fi.Floors : [];
+  const out: string[] = [];
+  for (const it of arr) {
+    const ref = String((it as any)?.[DEFAULT_FLOOR_VIEW.buildingFloorRefField] ?? '').trim();
+    if (ref) out.push(ref);
+  }
+  return out;
+}
+
+function supplementFloorIdsByDownwardRefs(
+  b: FeatureRecord,
+  floorsById: Map<string, FeatureRecord>,
+  floorIdSet: Set<string>
+) {
+  // 模块化：后续若要性能优化，可直接跳过该补全步骤
+  const refs = extractDownwardFloorRefsFromBuilding(b);
+  for (const ref of refs) {
+    if (floorIdSet.has(ref)) continue;
+    if (floorsById.has(ref)) floorIdSet.add(ref);
+  }
+}
+
 function distanceFromViewportCenterToBoundsPx(map: L.Map, bounds: L.LatLngBounds): number {
   const size = map.getSize();
   const c = L.point(size.x / 2, size.y / 2);
@@ -226,7 +297,7 @@ function detectGeoType(featureInfo: any): GeoType | null {
   if (t === 'Points' || t === 'Polyline' || t === 'Polygon') return t as GeoType;
   // 兜底：按字段猜
   if ((featureInfo as any)?.coordinate) return 'Points';
-  if (Array.isArray((featureInfo as any)?.PLpoints)) return 'Polyline';
+  if (Array.isArray((featureInfo as any)?.PLpoints) || Array.isArray((featureInfo as any)?.Linepoints)) return 'Polyline';
   if (Array.isArray((featureInfo as any)?.Conpoints) || Array.isArray((featureInfo as any)?.Flrpoints)) return 'Polygon';
   return null;
 }
@@ -256,7 +327,7 @@ function buildRecordsFromJson(items: any[], sourceFile: string): FeatureRecord[]
       if (!p) continue;
       r.p3 = p;
     } else if (type === 'Polyline') {
-      const arr = toP3Array((item as any).PLpoints);
+      const arr = toP3Array((item as any).PLpoints ?? (item as any).Linepoints);
       if (arr.length < 2) continue;
       r.coords3 = arr;
     } else if (type === 'Polygon') {
@@ -453,115 +524,148 @@ useEffect(() => {
       if (!loc) return;
       const p = { x: Number(loc.x), z: Number(loc.z) };
 
-// 以“中心点落入建筑面”为激活建筑
-const buildings = store.byClass[DEFAULT_FLOOR_VIEW.buildingClass] ?? [];
-let picked: FeatureRecord | null = null;
 
-// (1) 严格命中：中心点落入建筑面
-for (const b of buildings) {
-  if (!b.coords3 || b.coords3.length < 3) continue;
-  const poly = b.coords3.map(pt => ({ x: pt.x, z: pt.z }));
-  if (pointInPolygonXZ(p, poly)) {
-    picked = b;
-    break;
-  }
-}
 
-// (2) 非严格命中：中心点在一定像素范围内“接近”建筑，也可激活（避免过于严格）
-if (!picked) {
-  const paddedView = map.getBounds().pad(FLOOR_PICK_VIEW_PAD);
+      // 以“中心点命中/接近建筑”为激活建筑（支持 STB/SBP/BUD）
+      const buildings: FeatureRecord[] = (FLOOR_BUILDING_CLASSES as readonly string[]).flatMap((c) => store.byClass[c] ?? []);
+      let picked: FeatureRecord | null = null;
 
-  let best: { b: FeatureRecord; dist: number } | null = null;
-  for (const b of buildings) {
-    if (!b.coords3?.length) continue;
-
-    const bBounds = getFeatureBoundsLatLng(projection, b.coords3 as any, Y_FOR_DISPLAY);
-    if (!bBounds) continue;
-
-    // 先按视野粗筛，减少计算
-    if (!paddedView.intersects(bBounds)) continue;
-
-    const d = distanceFromViewportCenterToBoundsPx(map, bBounds);
-    if (d <= FLOOR_PICK_ACTIVATE_PX && (!best || d < best.dist)) {
-      best = { b, dist: d };
-    }
-  }
-
-  picked = best?.b ?? null;
-}
-
-const newUid = picked?.uid ?? null;
-
-// picked == null：只有当“上一次激活建筑”离开中心一定范围时才清空（避免闪烁 & 避免全屏过宽）
-if (!picked) {
-  if (activeBuildingUid) {
-    const prev = buildings.find(b => b.uid === activeBuildingUid);
-    if (prev?.coords3?.length) {
-      const prevBounds = getFeatureBoundsLatLng(projection, prev.coords3 as any, Y_FOR_DISPLAY);
-      if (prevBounds) {
-        const d = distanceFromViewportCenterToBoundsPx(map, prevBounds);
-        if (d <= FLOOR_PICK_KEEP_PX) {
-          return; // 保持：允许你操作右侧菜单
+      // (1) 严格命中：中心点落入建筑面（Polygon）
+      for (const b of buildings) {
+        if (b.type !== 'Polygon' || !b.coords3 || b.coords3.length < 3) continue;
+        const poly = b.coords3.map((pt) => ({ x: pt.x, z: pt.z }));
+        if (pointInPolygonXZ(p, poly)) {
+          picked = b;
+          break;
         }
       }
-    }
-  }
 
-  // 超出中心范围：清空楼层态 -> UI 消失
-  setActiveBuildingUid(null);
-  setActiveBuildingFloorRefSet(null);
-  setActiveBuildingName('');
-  setFloorOptions([]);
-  setActiveFloorIndex(0);
-  return;
-}
+      // (2) 非严格命中：中心点在一定像素范围内“接近”建筑（Polygon 用 bounds；Point 用点距）
+      if (!picked) {
+        const paddedView = map.getBounds().pad(FLOOR_PICK_VIEW_PAD);
+        let best: { b: FeatureRecord; dist: number } | null = null;
 
-// picked 有值：如果还是同一栋建筑，可提前 return（减少重复算）
-if (newUid === activeBuildingUid) return;
+        const size = map.getSize();
+        const centerPx = L.point(size.x / 2, size.y / 2);
 
-// 切换到新的建筑
-setActiveBuildingUid(newUid);
+        for (const b of buildings) {
+          // Point building（SBP 等）
+          if (b.type === 'Points' && b.p3) {
+            const ll = projection.locationToLatLng(b.p3.x, b.p3.y, b.p3.z);
+            if (!paddedView.contains(ll)) continue;
+            const pt = map.latLngToContainerPoint(ll);
+            const d = Math.hypot(pt.x - centerPx.x, pt.y - centerPx.y);
+            if (d <= FLOOR_PICK_ACTIVATE_PX && (!best || d < best.dist)) {
+              best = { b, dist: d };
+            }
+            continue;
+          }
 
+          // Polygon building（STB/BUD 等）
+          if (!b.coords3?.length) continue;
+          const bBounds = getFeatureBoundsLatLng(projection, b.coords3 as any, Y_FOR_DISPLAY);
+          if (!bBounds) continue;
+          if (!paddedView.intersects(bBounds)) continue;
 
+          const d = distanceFromViewportCenterToBoundsPx(map, bBounds);
+          if (d <= FLOOR_PICK_ACTIVATE_PX && (!best || d < best.dist)) {
+            best = { b, dist: d };
+          }
+        }
 
-// picked 有值，才更新 activeBuildingUid
-setActiveBuildingUid(newUid);
-
-setActiveBuildingName(
-  String((picked.featureInfo as any)?.staBuildingName ?? '').trim()
-);
-
-
-
-      setActiveBuildingName(String((picked.featureInfo as any)?.staBuildingName ?? '').trim());
-
-      // STB.Floors[] → 引用集合
-      const floorsRefArr = Array.isArray((picked.featureInfo as any)?.Floors) ? (picked.featureInfo as any).Floors : [];
-      const refSet = new Set<string>();
-      for (const it of floorsRefArr) {
-        const ref = String((it as any)?.[DEFAULT_FLOOR_VIEW.buildingFloorRefField] ?? '').trim();
-        if (ref) refSet.add(ref);
+        picked = best?.b ?? null;
       }
 
-      // 新增：若该 STB 没有任何 Floors 引用，则不进入楼层视角（否则会把全量 STF 当作候选，导致“任何 STB 都出楼层条”）
-if (refSet.size === 0) {
-  // 若你希望“命中无楼层的 STB 也不保留 activeBuildingUid”，就清空全部楼层态
-  if (activeBuildingUid !== null) setActiveBuildingUid(null);
-  if (activeBuildingFloorRefSet !== null) setActiveBuildingFloorRefSet(null);
-  if (activeBuildingName) setActiveBuildingName('');
-  if (floorOptions.length > 0) setFloorOptions([]);
-  if (activeFloorIndex !== 0) setActiveFloorIndex(0);
-  return;
-}
+      const newUid = picked?.uid ?? null;
 
-      setActiveBuildingFloorRefSet(refSet.size ? refSet : null);
+      // picked == null：只有当“上一次激活建筑”离开中心一定范围时才清空（避免闪烁）
+      if (!picked) {
+        if (activeBuildingUid) {
+          const prev = buildings.find((b) => b.uid === activeBuildingUid);
+          if (prev) {
+            // Polygon：用 bounds
+            if (prev.type === 'Polygon' && prev.coords3?.length) {
+              const prevBounds = getFeatureBoundsLatLng(projection, prev.coords3 as any, Y_FOR_DISPLAY);
+              if (prevBounds) {
+                const d = distanceFromViewportCenterToBoundsPx(map, prevBounds);
+                if (d <= FLOOR_PICK_KEEP_PX) return;
+              }
+            }
+            // Point：用点距
+            if (prev.type === 'Points' && prev.p3) {
+              const size = map.getSize();
+              const centerPx = L.point(size.x / 2, size.y / 2);
+              const ll = projection.locationToLatLng(prev.p3.x, prev.p3.y, prev.p3.z);
+              const pt = map.latLngToContainerPoint(ll);
+              const d = Math.hypot(pt.x - centerPx.x, pt.y - centerPx.y);
+              if (d <= FLOOR_PICK_KEEP_PX) return;
+            }
+          }
+        }
 
-      // 生成 floorOptions：从 STF 中筛选属于该建筑的楼层，按 NofFloor 去重排序
-      const floors = store.byClass[DEFAULT_FLOOR_VIEW.floorClass] ?? [];
-      const selectorSet = new Set<string>();
+        setActiveBuildingUid(null);
+        setActiveBuildingFloorRefSet(null);
+        setActiveBuildingName('');
+        setFloorOptions([]);
+        setActiveFloorIndex(0);
+        return;
+      }
+
+      // picked 有值：如果还是同一栋建筑，可提前 return（减少重复算）
+      if (newUid === activeBuildingUid) return;
+
+      // 切换到新的建筑
+      setActiveBuildingUid(newUid);
+
+      // 建筑名兼容：STB/SBP/BUD
+      const bfi: any = picked.featureInfo;
+      const bName = String(
+        bfi?.staBuildingName ?? bfi?.staBuildingPointName ?? bfi?.BuildingName ?? bfi?.name ?? ''
+      ).trim();
+      setActiveBuildingName(bName);
+
+      // 楼层关联：优先 STF/FLR 向上索引建筑；再用建筑 Floors[] 向下补全
+      const floors: FeatureRecord[] = (FLOOR_FLOOR_CLASSES as readonly string[]).flatMap((c) => store.byClass[c] ?? []);
+
+      const floorsById = new Map<string, FeatureRecord>();
       for (const f of floors) {
-        const ref = String((f.featureInfo as any)?.[DEFAULT_FLOOR_VIEW.floorRefTargetField] ?? '').trim();
-        if (refSet.size && ref && !refSet.has(ref)) continue;
+        const fid = getFloorIdForFloorView(f);
+        if (fid) floorsById.set(fid, f);
+      }
+
+      const buildingIds = getBuildingIdCandidatesForFloorView(picked);
+      const floorIdSet = new Set<string>();
+
+      // (A) STF/FLR 向上索引（parentId → buildingId）
+      if (buildingIds.size) {
+        for (const f of floors) {
+          const parent = getFloorParentIdForFloorView(f);
+          if (!parent || !buildingIds.has(parent)) continue;
+          const fid = getFloorIdForFloorView(f);
+          if (fid) floorIdSet.add(fid);
+        }
+      }
+
+      // (B) 兼容：STB/SBP/BUD.Floors[] 向下补全（可拆卸）
+      supplementFloorIdsByDownwardRefs(picked, floorsById, floorIdSet);
+
+      // 若仍无任何楼层，则不进入楼层视角（避免“任何建筑都出楼层条”）
+      if (floorIdSet.size === 0) {
+        setActiveBuildingUid(null);
+        setActiveBuildingFloorRefSet(null);
+        setActiveBuildingName('');
+        setFloorOptions([]);
+        setActiveFloorIndex(0);
+        return;
+      }
+
+      setActiveBuildingFloorRefSet(floorIdSet);
+
+      // 生成 floorOptions：从 STF/FLR 中筛选属于该建筑的楼层，按 NofFloor 去重排序
+      const selectorSet = new Set<string>();
+      for (const fid of floorIdSet) {
+        const f = floorsById.get(fid);
+        if (!f) continue;
         const selector = String((f.featureInfo as any)?.[DEFAULT_FLOOR_VIEW.floorSelectorField] ?? '').trim();
         if (selector) selectorSet.add(selector);
       }
@@ -575,7 +679,7 @@ if (refSet.size === 0) {
         return String(b).localeCompare(String(a));
       });
 
-      const opts = values.map(v => {
+      const opts = values.map((v) => {
         const n = Number(v);
         const label = Number.isFinite(n) ? (n >= 0 ? `L${n}` : `B${Math.abs(n)}`) : v;
         return { value: v, label };
@@ -583,6 +687,7 @@ if (refSet.size === 0) {
 
       setFloorOptions(opts);
       setActiveFloorIndex(0);
+
     };
 
     updateActiveBuilding();

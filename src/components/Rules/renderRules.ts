@@ -224,6 +224,11 @@ function pickIdFieldValue(featureInfo: any, cls: string): { idField: string; idV
   if (cls === 'STB') candidates.push('staBuildingID');
     if (cls === 'SBP') candidates.push('staBuildingPointID', 'staBuildingPointId', 'stationID', 'stationId', 'staBuildingID');
   if (cls === 'STF') candidates.push('staBFloorID');
+  if (cls === 'BUD') candidates.push('BuildingID');
+  if (cls === 'FLR') candidates.push('FloorID');
+  if (cls === 'ISP') candidates.push('PointID');
+  if (cls === 'ISL') candidates.push('PLineID');
+  if (cls === 'ISG') candidates.push('PGonID');
   if (cls === 'PLF') candidates.push('platformID');
   if (cls === 'PFB') candidates.push('plfRoundID', 'platformID');
   if (cls === 'STA') candidates.push('stationID');
@@ -248,7 +253,7 @@ export function buildFeatureMeta(featureInfo: any, cls: string, type: GeoType, s
   // 你所说的“除了坐标以外的所有属性信息” → sig；数组/对象 → groups
   for (const [k, v] of Object.entries(featureInfo ?? {})) {
     // 坐标字段排除
-    if (k === 'Conpoints' || k === 'Flrpoints' || k === 'PLpoints' || k === 'coordinate') continue;
+    if (k === 'Conpoints' || k === 'Flrpoints' || k === 'PLpoints' || k === 'Linepoints' || k === 'coordinate') continue;
 
     if (Array.isArray(v) || isPlainObject(v)) {
       groups[k] = v;
@@ -671,7 +676,59 @@ label: {
 },
 
 
+
+
   // ------------------------------------------------------------------
+  // (4.5) 建筑 BUD：
+  // - zoomLevel<4：仅显示“中心点+label”
+  // - zoomLevel>=4：显示面
+  // - 楼层视角激活建筑变淡（与 STB 一致）
+  // ------------------------------------------------------------------
+  {
+    name: '建筑 BUD：zoom<4 中心点+label；zoom>=4 显示面；楼层视角激活建筑变淡',
+    match: { Class: 'BUD', Type: 'Polygon' },
+    zoom: [0, 99],
+    symbol: {
+      pathStyle: (r, ctx) => {
+        // zoom<4：不画面（只留 label+dot）
+        if (ctx.zoomLevel < 4) return { opacity: 0, fillOpacity: 0, weight: 0 };
+
+        const base: L.PathOptions = {
+          color: '#111827',
+          opacity: 0.2,
+          weight: 2,
+          fillColor: '#9ca3af',
+          fillOpacity: 0.05,
+        };
+
+        // 楼层视角：激活建筑变淡
+        if (ctx.inFloorView && ctx.activeBuildingUid && ctx.activeBuildingUid === r.uid) {
+          return { ...base, opacity: 0.25, fillOpacity: 0.06 };
+        }
+        return base;
+      },
+      label: {
+        enabled: true,
+        minLevel: 0,
+        placement: 'center',
+        textFrom: (r, ctx) => {
+          if (ctx.zoomLevel >= 4) return '';
+          return String((r.featureInfo as any)?.BuildingName ?? '').trim();
+        },
+        offsetY: 10,
+        withDot: true,
+        declutter: {
+          priority: 10,
+          minSpacingPx: 6,
+          candidates: ['N', 'NE', 'NW', 'E', 'W', 'SE', 'SW', 'S'],
+          allowHide: true,
+          allowAbbrev: true,
+          abbrev: (s) => (s.length > 6 ? s.slice(0, 6) + '…' : s),
+        },
+      },
+    },
+  },
+
   // (5) 车站点 STA：
   // - zoomLevel<4：不显示
   // - zoomLevel 4..6：显示固定图标
@@ -842,7 +899,53 @@ label: {
 
 
 
+
+
   // ------------------------------
+  // 楼层（FLR）
+  // ------------------------------
+  {
+    name: '楼层 FLR：楼层视角下按 NofFloor 选择（兼容 STF/FLR 上行索引）',
+    match: { Class: 'FLR', Type: 'Polygon' },
+    zoom: [DEFAULT_FLOOR_VIEW.minLevel, 99],
+    visible: (r, ctx) => {
+      if (!ctx.inFloorView) return false;
+      if (!ctx.activeFloorSelector) return false;
+
+      // 必须属于当前激活建筑的楼层集合（FloorID）
+      const ref = String((r.featureInfo as any)?.FloorID ?? (r.featureInfo as any)?.ID ?? '').trim();
+      if (ctx.activeBuildingFloorRefSet && ref) {
+        if (!ctx.activeBuildingFloorRefSet.has(ref)) return false;
+      }
+
+      const selector = String((r.featureInfo as any)?.[DEFAULT_FLOOR_VIEW.floorSelectorField] ?? '').trim();
+      return selector === String(ctx.activeFloorSelector).trim();
+    },
+    symbol: {
+      pathStyle: (r, ctx, store) => {
+        void ctx;
+        const c = store.findRelatedLineColor(r) ?? '#4b5563';
+        return {
+          color: c,
+          opacity: 0.85,
+          weight: 2,
+          fillColor: c,
+          fillOpacity: 0.28,
+        };
+      },
+      label: {
+        enabled: true,
+        placement: 'center',
+        textFrom: (r) => {
+          const name = String((r.featureInfo as any)?.FloorName ?? '').trim();
+          if (name) return name;
+          return fmtFloorLabel((r.featureInfo as any)?.[DEFAULT_FLOOR_VIEW.floorSelectorField]);
+        },
+        minLevel: DEFAULT_FLOOR_VIEW.minLevel,
+      },
+    },
+  },
+
   // 车站建筑点（示例：SBP）
   // - 展示外部图标
   // - 若同 idValue 的 STB 存在，则不渲染 SBP（示例：“若xxx存在则不渲染xxx”）
@@ -870,6 +973,99 @@ label: {
   },
 
   // ------------------------------
+
+
+  // ------------------------------
+  // 地物点 ISP
+  // ------------------------------
+  {
+    name: '地物点 ISP：圆点 + label',
+    match: { Class: 'ISP', Type: 'Points' },
+    zoom: [0, 99],
+    symbol: {
+      point: {
+        pane: 'ria-point-top',
+        kind: 'circle',
+        radius: 4,
+        style: {
+          color: '#111827',
+          opacity: 0.9,
+          weight: 2,
+          fillColor: '#f97316',
+          fillOpacity: 0.75,
+        },
+      },
+      label: {
+        enabled: true,
+        minLevel: 4,
+        placement: 'near',
+        textFrom: (r) => String((r.featureInfo as any)?.PointName ?? '').trim(),
+        offsetY: 10,
+        withDot: true,
+        declutter: {
+          priority: 10,
+          minSpacingPx: 6,
+          candidates: ['N', 'NE', 'NW', 'E', 'W', 'SE', 'SW', 'S'],
+          allowHide: true,
+          allowAbbrev: true,
+          abbrev: (s) => (s.length > 10 ? s.slice(0, 10) + '…' : s),
+        },
+      },
+    },
+  },
+
+  // ------------------------------
+  // 地物线 ISL
+  // ------------------------------
+  {
+    name: '地物线 ISL：线 + label',
+    match: { Class: 'ISL', Type: 'Polyline' },
+    zoom: [0, 99],
+    symbol: {
+      pathStyle: { color: '#111827', opacity: 0.85, weight: 1 },
+      label: {
+        enabled: true,
+        placement: 'near',
+        minLevel: 0,
+        textFrom: (r) => String((r.featureInfo as any)?.PLineName ?? '').trim(),
+        declutter: {
+          priority: 10,
+          minSpacingPx: 6,
+          candidates: ['N', 'NE', 'NW', 'E', 'W', 'SE', 'SW', 'S'],
+          allowHide: true,
+          allowAbbrev: true,
+          abbrev: (s) => (s.length > 10 ? s.slice(0, 10) + '…' : s),
+        },
+      },
+    },
+  },
+
+  // ------------------------------
+  // 地物面 ISG
+  // ------------------------------
+  {
+    name: '地物面 ISG：面 + label',
+    match: { Class: 'ISG', Type: 'Polygon' },
+    zoom: [0, 99],
+    symbol: {
+      pathStyle: { color: '#111827', opacity: 0.65, weight: 1, fillColor: '#60a5fa', fillOpacity: 0.10 },
+      label: {
+        enabled: true,
+        placement: 'center',
+        minLevel: 2,
+        textFrom: (r) => String((r.featureInfo as any)?.PGonName ?? '').trim(),
+        declutter: {
+          priority: 10,
+          minSpacingPx: 6,
+          candidates: ['N', 'NE', 'NW', 'E', 'W', 'SE', 'SW', 'S'],
+          allowHide: true,
+          allowAbbrev: true,
+          abbrev: (s) => (s.length > 10 ? s.slice(0, 10) + '…' : s),
+        },
+      },
+    },
+  },
+
   // 点要素：外部图标 + label（示例）
   // ------------------------------
   {
