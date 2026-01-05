@@ -243,14 +243,12 @@ interface LayerControlProps {
   showRailway: boolean;
   showLandmark: boolean;
   showPlayers: boolean;
-  showRouteHighlight: boolean;
   showRuleLayers?: boolean;
   dimBackground: boolean;
   mapStyle: MapStyle;
   onToggleRailway: (show: boolean) => void;
   onToggleLandmark: (show: boolean) => void;
   onTogglePlayers: (show: boolean) => void;
-  onToggleRouteHighlight: (show: boolean) => void;
   onToggleRuleLayers?: (show: boolean) => void;
   onToggleDimBackground: (dim: boolean) => void;
   onToggleMapStyle: (style: MapStyle) => void;
@@ -261,14 +259,12 @@ export function LayerControl({
   showRailway,
   showLandmark,
   showPlayers,
-  showRouteHighlight,
   showRuleLayers,
   dimBackground,
   mapStyle,
   onToggleRailway,
   onToggleLandmark,
   onTogglePlayers,
-  onToggleRouteHighlight,
   onToggleRuleLayers,
   onToggleDimBackground,
   onToggleMapStyle,
@@ -318,15 +314,6 @@ export function LayerControl({
             />
           </div>
         )}
-
-        {/* 规划图层 */}
-        <ToolIconButton
-          label="规划"
-          icon={<Navigation className="w-5 h-5" />}
-          active={showRouteHighlight}
-          tone="gray"
-          onClick={() => onToggleRouteHighlight(!showRouteHighlight)}
-        />
       </div>
 
       <div className="h-px bg-gray-200" />
