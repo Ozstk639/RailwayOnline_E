@@ -905,14 +905,12 @@ map.on('mousemove', handleMouseMove);
           showRailway={showRailway}
           showLandmark={showLandmark}
           showPlayers={showPlayers}
-          showRouteHighlight={showRouteHighlight}
           showRuleLayers={showRuleLayers}
           dimBackground={dimBackground}
           mapStyle={mapStyle}
           onToggleRailway={setShowRailway}
           onToggleLandmark={setShowLandmark}
           onTogglePlayers={setShowPlayers}
-          onToggleRouteHighlight={setShowRouteHighlight}
           onToggleRuleLayers={(show) => setShowRuleLayers(show)}
           onToggleDimBackground={setDimBackground}
           onToggleMapStyle={setMapStyle}

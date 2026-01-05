@@ -892,11 +892,12 @@ useEffect(() => {
               <h3 className="font-bold text-gray-800">控制点修改</h3>
               <AppButton
                 onClick={() => tryClosePanelDiscard('edit')}
-                className="text-gray-400 hover:text-gray-600"
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
                 aria-label="关闭"
+                title="关闭"
                 type="button"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </AppButton>
             </div>
 

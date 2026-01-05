@@ -35,7 +35,7 @@ export default function ToolIconButton({
   type = 'button',
 }: ToolIconButtonProps) {
   const base =
-    'relative group flex flex-col items-center justify-center h-11 w-11 p-2 transition-colors';
+    'relative group flex flex-col items-center justify-center h-9 w-9 p-1.5 transition-colors';
   const inactive = 'bg-white/90 text-gray-600 hover:bg-gray-100';
   const disabledCls = 'bg-gray-100 text-gray-300 cursor-not-allowed';
   const activeCls = TONE_ACTIVE_CLASS[tone];
@@ -53,7 +53,7 @@ export default function ToolIconButton({
       disabled={disabled}
     >
       {icon}
-      <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs bg-gray-800 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+      <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 text-xs bg-gray-800 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
         {label}
       </span>
     </AppButton>

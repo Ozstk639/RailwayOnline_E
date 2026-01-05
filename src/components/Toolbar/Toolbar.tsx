@@ -141,7 +141,7 @@ function MapStyleSelector({ mapStyle, onToggleMapStyle }: MapStyleSelectorProps)
     <div ref={dropdownRef} className="relative">
       <AppButton
         onClick={() => setIsOpen(!isOpen)}
-        className={`h-11 w-11 p-2 transition-colors group relative ${
+        className={`h-9 w-9 p-1.5 transition-colors group relative ${
           mapStyle !== 'default'
             ? 'bg-amber-100 text-amber-600'
             : 'hover:bg-gray-100 text-gray-400'
@@ -149,7 +149,7 @@ function MapStyleSelector({ mapStyle, onToggleMapStyle }: MapStyleSelectorProps)
         title="地图风格"
       >
         {currentStyle.icon}
-        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs bg-gray-800 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none max-md:hidden">
+        <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 text-xs bg-gray-800 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none max-md:hidden">
           {currentStyle.label}
         </span>
       </AppButton>

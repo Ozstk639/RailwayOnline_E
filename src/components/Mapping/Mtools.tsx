@@ -725,8 +725,8 @@ export default function MeasurementToolsModule(props: MeasurementToolsModuleProp
             {/* 标题栏（用于拖拽区域，右侧留出关闭按钮） */}
             <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0">
               <h3 className="font-bold text-gray-800">测量工具</h3>
-              <AppButton onClick={handleClosePanels} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
+              <AppButton onClick={handleClosePanels} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded" title="关闭">
+                <X className="w-4 h-4" />
               </AppButton>
             </div>
 
@@ -870,8 +870,8 @@ export default function MeasurementToolsModule(props: MeasurementToolsModuleProp
           <AppCard className="w-[520px] overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b">
               <h3 className="font-bold text-gray-800">测量结果</h3>
-              <AppButton onClick={handleClosePanels} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
+              <AppButton onClick={handleClosePanels} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded" title="关闭">
+                <X className="w-4 h-4" />
               </AppButton>
             </div>
             <div className="p-3">
@@ -1025,72 +1025,81 @@ export default function MeasurementToolsModule(props: MeasurementToolsModuleProp
         </>
       )}
 
-      {/* 图层管理（按你要求：可不做标题栏/拖拽；位置保持不变） */}
+      {/* 图层管理 */}
       {active && (
-        <AppCard className="fixed top-20 right-4 z-[2100] p-3 w-[360px] max-h-[75vh] overflow-auto">
-          <div className="font-semibold mb-2">测量图层管理</div>
+        <DraggablePanel
+          id="measurement-layer-manager"
+          defaultPosition={{ x: window.innerWidth - 380, y: 80 }}
+          zIndex={2100}
+        >
+          <AppCard className="w-[360px] max-h-[calc(75vh)] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0">
+              <h3 className="font-bold text-gray-800">测量图层管理</h3>
+            </div>
+            <div className="p-3 overflow-auto">
+              {layers.length === 0 && <div className="text-xs text-gray-500">暂无图层</div>}
 
-          {layers.length === 0 && <div className="text-xs text-gray-500">暂无图层</div>}
+              <div className="space-y-2">
+                {layers.map((l, idx) => {
+                  const isSelected = selectedLayerId === l.id;
+                  return (
+                    <div
+                      key={l.id}
+                      className={`border rounded p-2 ${isSelected ? 'border-blue-500' : 'border-gray-200'}`}
+                      onClick={() => setSelectedLayerId(l.id)}
+                      role="button"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium">Layer {idx + 1}</div>
 
-          <div className="space-y-2">
-            {layers.map((l, idx) => {
-              const isSelected = selectedLayerId === l.id;
-              return (
-                <div
-                  key={l.id}
-                  className={`border rounded p-2 ${isSelected ? 'border-blue-500' : 'border-gray-200'}`}
-                  onClick={() => setSelectedLayerId(l.id)}
-                  role="button"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium">Layer {idx + 1}</div>
+                        <div className="ml-auto flex items-center gap-1">
+                          <AppButton className="px-2 py-1 rounded bg-gray-200" onClick={e => (e.stopPropagation(), moveUp(l.id))}>
+                            ↑
+                          </AppButton>
+                          <AppButton className="px-2 py-1 rounded bg-gray-200" onClick={e => (e.stopPropagation(), moveDown(l.id))}>
+                            ↓
+                          </AppButton>
+                          <AppButton
+                            className="px-2 py-1 rounded bg-gray-200"
+                            onClick={e => (e.stopPropagation(), toggleVisible(l.id))}
+                          >
+                            {l.visible ? '隐藏' : '显示'}
+                          </AppButton>
+                          <AppButton
+                            className="px-2 py-1 rounded bg-red-600 text-white"
+                            onClick={e => (e.stopPropagation(), deleteLayer(l.id))}
+                          >
+                            删除
+                          </AppButton>
+                        </div>
+                      </div>
 
-                    <div className="ml-auto flex items-center gap-1">
-                      <AppButton className="px-2 py-1 rounded bg-gray-200" onClick={e => (e.stopPropagation(), moveUp(l.id))}>
-                        ↑
-                      </AppButton>
-                      <AppButton className="px-2 py-1 rounded bg-gray-200" onClick={e => (e.stopPropagation(), moveDown(l.id))}>
-                        ↓
-                      </AppButton>
-                      <AppButton
-                        className="px-2 py-1 rounded bg-gray-200"
-                        onClick={e => (e.stopPropagation(), toggleVisible(l.id))}
-                      >
-                        {l.visible ? '隐藏' : '显示'}
-                      </AppButton>
-                      <AppButton
-                        className="px-2 py-1 rounded bg-red-600 text-white"
-                        onClick={e => (e.stopPropagation(), deleteLayer(l.id))}
-                      >
-                        删除
-                      </AppButton>
+                      <div className="text-xs text-gray-600 mt-1 break-words">
+                        {(l as any).detailText ?? (l as any).summaryText ?? ''}
+                      </div>
+
+                      {isSelected && (l.kind === 'shape-ellipse' || l.kind === 'shape-square') && (
+                        <div className="mt-2">
+                          <div className="text-xs text-gray-600 mb-1">旋转（度）</div>
+                          <input
+                            type="range"
+                            min={0}
+                            max={360}
+                            step={1}
+                            value={selectedRotation}
+                            onChange={e => updateRotation(l.id, Number(e.target.value))}
+                            className="w-full"
+                          />
+                          <div className="text-xs text-gray-600 mt-1">{selectedRotation.toFixed(0)}°</div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-
-                  <div className="text-xs text-gray-600 mt-1 break-words">
-                    {(l as any).detailText ?? (l as any).summaryText ?? ''}
-                  </div>
-
-                  {isSelected && (l.kind === 'shape-ellipse' || l.kind === 'shape-square') && (
-                    <div className="mt-2">
-                      <div className="text-xs text-gray-600 mb-1">旋转（度）</div>
-                      <input
-                        type="range"
-                        min={0}
-                        max={360}
-                        step={1}
-                        value={selectedRotation}
-                        onChange={e => updateRotation(l.id, Number(e.target.value))}
-                        className="w-full"
-                      />
-                      <div className="text-xs text-gray-600 mt-1">{selectedRotation.toFixed(0)}°</div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </AppCard>
+                  );
+                })}
+              </div>
+            </div>
+          </AppCard>
+        </DraggablePanel>
       )}
 
       {/* 半径输入弹窗（圆/椭圆）—— 增加标题栏与关闭按钮 */}
@@ -1104,9 +1113,10 @@ export default function MeasurementToolsModule(props: MeasurementToolsModuleProp
                   pendingCircleCenterRef.current = null;
                   setRadiusModalOpen(false);
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                title="关闭"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </AppButton>
             </div>
 
