@@ -60,8 +60,10 @@ export const RULE_DATA_SOURCES: Record<string, WorldRuleDataSource> = {
     'ZRT7_Stas.json',
     'ZRTL1_01A.json',
     'ZRTL1_01B.json',
-    'test.json'
-
+    'test.json',
+    'H7 A 海华北-会展中心 251231.json',
+    'T3测试.json',
+    'T5测试.json'
     ],
   },
 

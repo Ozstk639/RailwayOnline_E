@@ -71,7 +71,7 @@ function MapContainer() {
   const [landmarks, setLandmarks] = useState<ParsedLandmark[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [routeHighlight, setRouteHighlight] = useState<RouteHighlightData | null>(null);
-  const [showRouteHighlight, setShowRouteHighlight] = useState(true);
+  const [showRouteHighlight] = useState(true);
 
 // 是否存在可绘制的路线（用于隐藏图层/显示清除按钮）
   const hasRoute =

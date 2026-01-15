@@ -1,0 +1,512 @@
+[
+  {
+    "LineID": "ZRT3_A_01",
+    "LineName": "溯铁山北线-北段",
+    "bureau": "T",
+    "line": "3",
+    "color": "39B54A",
+    "direction": 3,
+    "startplf": "白塔",
+    "endplf": "天原西",
+    "PLpoints": [
+      [
+        5163.5,
+        -64,
+        4385.5
+      ],
+      [
+        5163.5,
+        -64,
+        3883.5
+      ]
+    ],
+    "Type": "Polyline",
+    "Class": "RLE",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "LineID": "ZRT3_A_01_D",
+    "LineName": "溯铁山北线-北段-下行",
+    "bureau": "T",
+    "line": "3",
+    "color": "39B54A",
+    "direction": 0,
+    "startplf": "天原西",
+    "endplf": "白塔",
+    "PLpoints": [
+      [
+        5165.5,
+        -64,
+        3883.5
+      ],
+      [
+        5165.5,
+        -64,
+        4385.5
+      ]
+    ],
+    "Type": "Polyline",
+    "Class": "RLE",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "LineID": "ZRT3_A_01_U",
+    "LineName": "溯铁山北线-北段-上行",
+    "bureau": "T",
+    "line": "3",
+    "color": "39B54A",
+    "direction": 1,
+    "startplf": "白塔",
+    "endplf": "天原西",
+    "PLpoints": [
+      [
+        5161.5,
+        -64,
+        4385.5
+      ],
+      [
+        5161.5,
+        -64,
+        3883.5
+      ]
+    ],
+    "Type": "Polyline",
+    "Class": "RLE",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_TYX",
+    "staBuildingName": "天原西",
+    "Conpoints": [
+      [
+        5158.5,
+        -63,
+        3879.5
+      ],
+      [
+        5158.5,
+        -63,
+        3894.5
+      ],
+      [
+        5168.5,
+        -63,
+        3894.5
+      ],
+      [
+        5168.5,
+        -63,
+        3879.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT3STA_7"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT3PFB_7",
+    "plfRoundName": "天原西",
+    "LineID": "ZRT3_A_01",
+    "Flrpoints": [
+      [
+        5158.5,
+        -63,
+        3879.5
+      ],
+      [
+        5158.5,
+        -63,
+        3894.5
+      ],
+      [
+        5168.5,
+        -63,
+        3894.5
+      ],
+      [
+        5168.5,
+        -63,
+        3879.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "platformID": "ZRT3PLF*7*D",
+    "platformName": "天原西-7站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 5165.5,
+      "z": 3883.5
+    },
+    "lines": [
+      {
+        "ID": "ZRT3_A_01_D",
+        "stationCode": 7,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "platformID": "ZRT3PLF*7*U",
+    "platformName": "天原西-7站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 5161.5,
+      "z": 3883.5
+    },
+    "lines": [
+      {
+        "ID": "ZRT3_A_01_U",
+        "stationCode": 7,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "stationID": "ZRT3STA_7",
+    "stationName": "天原西",
+    "STBuilding": "ZRTSTB_TYX",
+    "coordinate": {
+      "x": 5163.5,
+      "z": 3883.5
+    },
+    "platforms": [
+      {
+        "ID": "ZRT3PLF*7*D"
+      },
+      {
+        "ID": "ZRT3PLF*7*U"
+      }
+    ],
+    "Type": "Points",
+    "Class": "STA",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_LLSC",
+    "staBuildingName": "林海山侧",
+    "Conpoints": [
+      [
+        5155.5,
+        -63,
+        4095.5
+      ],
+      [
+        5155.5,
+        -63,
+        4118.5
+      ],
+      [
+        5171.5,
+        -63,
+        4118.5
+      ],
+      [
+        5171.5,
+        -63,
+        4095.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT3STA_6"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT3PFB_6",
+    "plfRoundName": "林海山侧",
+    "LineID": "ZRT3_A_01",
+    "Flrpoints": [
+      [
+        5155.5,
+        -63,
+        4095.5
+      ],
+      [
+        5155.5,
+        -63,
+        4118.5
+      ],
+      [
+        5171.5,
+        -63,
+        4118.5
+      ],
+      [
+        5171.5,
+        -63,
+        4095.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "platformID": "ZRT3PLF*6*D",
+    "platformName": "林海山侧-6站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 5165.5,
+      "z": 4106.5
+    },
+    "lines": [
+      {
+        "ID": "ZRT3_A_01_D",
+        "stationCode": 0,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "platformID": "ZRT3PLF*6*U",
+    "platformName": "林海山侧-6站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 5161.5,
+      "z": 4106.5
+    },
+    "lines": [
+      {
+        "ID": "ZRT3_A_01_U",
+        "stationCode": 0,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "stationID": "ZRT3STA_6",
+    "stationName": "林海山侧",
+    "STBuilding": "ZRTSTB_LLSC",
+    "coordinate": {
+      "x": 5163.5,
+      "z": 4106.5
+    },
+    "platforms": [
+      {
+        "ID": "ZRT3PLF*6*D"
+      },
+      {
+        "ID": "ZRT3PLF*6*U"
+      }
+    ],
+    "Type": "Points",
+    "Class": "STA",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_BT",
+    "staBuildingName": "白塔",
+    "Conpoints": [
+      [
+        5155.5,
+        -63,
+        4376.5
+      ],
+      [
+        5155.5,
+        -63,
+        4405.5
+      ],
+      [
+        5171.5,
+        -63,
+        4405.5
+      ],
+      [
+        5171.5,
+        -63,
+        4376.5
+      ]
+    ],
+    "Floors": [],
+    "Stations": [
+      {
+        "ID": "ZRT3STA_5"
+      }
+    ],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT3PFB_5",
+    "plfRoundName": "白塔",
+    "LineID": "ZRT3_A_01",
+    "Flrpoints": [
+      [
+        5155.5,
+        -63,
+        4376.5
+      ],
+      [
+        5155.5,
+        -63,
+        4405.5
+      ],
+      [
+        5171.5,
+        -63,
+        4405.5
+      ],
+      [
+        5171.5,
+        -63,
+        4376.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "platformID": "ZRT3PLF*5*D",
+    "platformName": "白塔-5站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 5165.5,
+      "z": 4385.5
+    },
+    "lines": [
+      {
+        "ID": "ZRT3_A_01_D",
+        "stationCode": 5,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "platformID": "ZRT3PLF*5*U",
+    "platformName": "白塔-5站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 5161.5,
+      "z": 4385.5
+    },
+    "lines": [
+      {
+        "ID": "ZRT3_A_01_U",
+        "stationCode": 5,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  },
+  {
+    "stationID": "ZRT3STA_5",
+    "stationName": "白塔",
+    "STBuilding": "ZRTSTB_BT",
+    "coordinate": {
+      "x": 5163.5,
+      "z": 4385.5
+    },
+    "platforms": [
+      {
+        "ID": "ZRT3PLF*5*D"
+      },
+      {
+        "ID": "ZRT3PLF*5*U"
+      }
+    ],
+    "Type": "Points",
+    "Class": "STA",
+    "World": 0,
+    "CreateTime": "20260115",
+    "CreateBy": "639"
+  }
+]

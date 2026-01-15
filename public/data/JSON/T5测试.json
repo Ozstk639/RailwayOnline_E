@@ -1,0 +1,359 @@
+[
+  {
+    "LineID": "ZRT5_C",
+    "LineName": "溯铁5号线-落棠段",
+    "bureau": "T",
+    "line": "5",
+    "color": "662D91",
+    "direction": 3,
+    "startplf": "兴业町",
+    "endplf": "落棠南",
+    "PLpoints": [
+      [
+        6247,
+        -64,
+        4385.5
+      ],
+      [
+        6514.5,
+        -64,
+        4385.5
+      ]
+    ],
+    "Type": "Polyline",
+    "Class": "RLE",
+    "World": 0,
+    "CreateTime": "20260116",
+    "CreateBy": "639"
+  },
+  {
+    "LineID": "ZRT5_C_D",
+    "LineName": "溯铁5号线-落棠段-下行",
+    "bureau": "T",
+    "line": "5",
+    "color": "662D91",
+    "direction": 0,
+    "startplf": "兴业町",
+    "endplf": "落棠南",
+    "PLpoints": [
+      [
+        6247.5,
+        -64,
+        4387.5
+      ],
+      [
+        6514.5,
+        -64,
+        4387.5
+      ]
+    ],
+    "Type": "Polyline",
+    "Class": "RLE",
+    "World": 0,
+    "CreateTime": "20260116",
+    "CreateBy": "639"
+  },
+  {
+    "LineID": "ZRT5_C_U",
+    "LineName": "溯铁5号线-落棠段-上行",
+    "bureau": "T",
+    "line": "5",
+    "color": "662D91",
+    "direction": 1,
+    "startplf": "落棠南",
+    "endplf": "兴业町",
+    "PLpoints": [
+      [
+        6514.5,
+        -64,
+        4383.5
+      ],
+      [
+        6247.5,
+        -64,
+        4383.5
+      ]
+    ],
+    "Type": "Polyline",
+    "Class": "RLE",
+    "World": 0,
+    "CreateTime": "20260116",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_XYT2",
+    "staBuildingName": "兴业町",
+    "Conpoints": [
+      [
+        6236.5,
+        -63,
+        4377.5
+      ],
+      [
+        6236.5,
+        -63,
+        4393.5
+      ],
+      [
+        6259.5,
+        -63,
+        4393.5
+      ],
+      [
+        6259.5,
+        -63,
+        4377.5
+      ]
+    ],
+    "Floors": [],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20260116",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT5PFB_8",
+    "plfRoundName": "兴业町",
+    "LineID": "ZRT5_C",
+    "Flrpoints": [
+      [
+        6236.5,
+        -63,
+        4377.5
+      ],
+      [
+        6236.5,
+        -63,
+        4393.5
+      ],
+      [
+        6259.5,
+        -63,
+        4393.5
+      ],
+      [
+        6259.5,
+        -63,
+        4377.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20260116",
+    "CreateBy": "639"
+  },
+  {
+    "platformID": "ZRT5PLF_8_D",
+    "platformName": "兴业町-1站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 6247.5,
+      "z": 4387.5
+    },
+    "lines": [
+      {
+        "ID": "ZRT5_C_D",
+        "stationCode": 1,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20260116",
+    "CreateBy": "639"
+  },
+  {
+    "platformID": "ZRT5PLF_8_U",
+    "platformName": "兴业町-2站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 6247.5,
+      "z": 4383.5
+    },
+    "lines": [
+      {
+        "ID": "ZRT5_C_U",
+        "stationCode": 1,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20260116",
+    "CreateBy": "639"
+  },
+  {
+    "stationID": "ZRT5STA_8",
+    "stationName": "兴业町",
+    "STBuilding": "ZRTSTB_XYT2",
+    "coordinate": {
+      "x": 6247.5,
+      "z": 4385.5
+    },
+    "platforms": [
+      {
+        "ID": "ZRT5PLF_8_D"
+      },
+      {
+        "ID": "ZRT5PLF_8_U"
+      }
+    ],
+    "Type": "Points",
+    "Class": "STA",
+    "World": 0,
+    "CreateTime": "20260116",
+    "CreateBy": "639"
+  },
+  {
+    "staBuildingID": "ZRTSTB_LTN2",
+    "staBuildingName": "落棠南",
+    "Conpoints": [
+      [
+        6503.5,
+        -63,
+        4378.5
+      ],
+      [
+        6503.5,
+        -63,
+        4393.5
+      ],
+      [
+        6525.5,
+        -63,
+        4393.5
+      ],
+      [
+        6525.5,
+        -63,
+        4378.5
+      ]
+    ],
+    "Floors": [],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20260116",
+    "CreateBy": "639"
+  },
+  {
+    "plfRoundID": "ZRT5PFB_9",
+    "plfRoundName": "落棠南",
+    "LineID": "ZRT5_C",
+    "Flrpoints": [
+      [
+        6503.5,
+        -63,
+        4378.5
+      ],
+      [
+        6503.5,
+        -63,
+        4393.5
+      ],
+      [
+        6525.5,
+        -63,
+        4393.5
+      ],
+      [
+        6525.5,
+        -63,
+        4378.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20260116",
+    "CreateBy": "639"
+  },
+  {
+    "platformID": "ZRT5PLF_9_D",
+    "platformName": "落棠南-1站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 6514.5,
+      "z": 4387.5
+    },
+    "lines": [
+      {
+        "ID": "ZRT5_C_D",
+        "stationCode": 8,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20260116",
+    "CreateBy": "639"
+  },
+  {
+    "platformID": "ZRT5PLF_9_U",
+    "platformName": "落棠南-2站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 6514.5,
+      "z": 4383.5
+    },
+    "lines": [
+      {
+        "ID": "ZRT5_C_U",
+        "stationCode": 8,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20260116",
+    "CreateBy": "639"
+  },
+  {
+    "stationID": "ZRT5STA_9",
+    "stationName": "落棠南",
+    "STBuilding": "ZRTSTB_LTN2",
+    "coordinate": {
+      "x": 6514.5,
+      "z": 4385.5
+    },
+    "platforms": [
+      {
+        "ID": "ZRT5PLF_9_D"
+      },
+      {
+        "ID": "ZRT5PLF_9_U"
+      }
+    ],
+    "Type": "Points",
+    "Class": "STA",
+    "World": 0,
+    "CreateTime": "20260116",
+    "CreateBy": "639"
+  }
+]

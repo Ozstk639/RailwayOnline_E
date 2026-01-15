@@ -1,0 +1,522 @@
+[
+  {
+    "LineID": "ZRH7_A_01",
+    "LineName": "海华7号线",
+    "bureau": "H",
+    "line": "7",
+    "color": "7f00ff",
+    "direction": 3,
+    "startplf": "海华北站",
+    "endplf": "会展中心",
+    "PLpoints": [
+      [
+        8790.5,
+        -64,
+        8247.5
+      ],
+      [
+        8790.5,
+        -64,
+        8057.5
+      ],
+      [
+        8795.5,
+        -64,
+        8042.5
+      ],
+      [
+        8802,
+        -64,
+        8030
+      ],
+      [
+        8811.5,
+        -64,
+        8018.5
+      ],
+      [
+        8826,
+        -64,
+        8008.5
+      ],
+      [
+        8842.5,
+        -64,
+        8002.5
+      ],
+      [
+        8853.5,
+        -64,
+        8000.5
+      ],
+      [
+        9019.5,
+        -64,
+        8000.5
+      ]
+    ],
+    "Type": "Polyline",
+    "Class": "RLE",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "HyperBird_"
+  },
+  {
+    "LineID": "ZRH7_A_01_D",
+    "LineName": "海华7号线-下行",
+    "bureau": "H",
+    "line": "7",
+    "color": "7f00ff",
+    "direction": 0,
+    "startplf": "会展中心",
+    "endplf": "海华北站",
+    "PLpoints": [
+      [
+        9019.5,
+        -64,
+        7990.5
+      ],
+      [
+        8927.5,
+        -64,
+        7990.5
+      ],
+      [
+        8899.5,
+        -64,
+        7986.5
+      ],
+      [
+        8853.5,
+        -64,
+        7986.5
+      ],
+      [
+        8845.5,
+        -64,
+        7987.5
+      ],
+      [
+        8837.5,
+        -64,
+        7989.5
+      ],
+      [
+        8830.5,
+        -64,
+        7991.5
+      ],
+      [
+        8822.5,
+        -64,
+        7995.5
+      ],
+      [
+        8815.5,
+        -64,
+        8000.5
+      ],
+      [
+        8802.5,
+        -64,
+        8013.5
+      ],
+      [
+        8797.5,
+        -64,
+        8020.5
+      ],
+      [
+        8793.5,
+        -64,
+        8028.5
+      ],
+      [
+        8791.5,
+        -64,
+        8035.5
+      ],
+      [
+        8788.5,
+        -64,
+        8047.5
+      ],
+      [
+        8788.5,
+        -64,
+        8247.5
+      ]
+    ],
+    "Type": "Polyline",
+    "Class": "RLE",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "HyperBird_"
+  },
+  {
+    "LineID": "ZRH7_A_01_U",
+    "LineName": "海华7号线-上行",
+    "bureau": "H",
+    "line": "7",
+    "color": "7f00ff",
+    "direction": 1,
+    "startplf": "海华北站",
+    "endplf": "会展中心",
+    "PLpoints": [
+      [
+        8792.5,
+        -64,
+        8247.5
+      ],
+      [
+        8792.5,
+        -64,
+        8070.5
+      ],
+      [
+        8795.5,
+        -64,
+        8058.5
+      ],
+      [
+        8802.5,
+        -64,
+        8044.5
+      ],
+      [
+        8807.5,
+        -64,
+        8037.5
+      ],
+      [
+        8815.5,
+        -64,
+        8029.5
+      ],
+      [
+        8822.5,
+        -64,
+        8024.5
+      ],
+      [
+        8829.5,
+        -64,
+        8020.5
+      ],
+      [
+        8837.5,
+        -64,
+        8017.5
+      ],
+      [
+        8845.5,
+        -64,
+        8015.5
+      ],
+      [
+        8853.5,
+        -64,
+        8014.5
+      ],
+      [
+        8899.5,
+        -64,
+        8014.5
+      ],
+      [
+        8927.5,
+        -64,
+        8010.5
+      ],
+      [
+        9019.5,
+        -64,
+        8010.5
+      ]
+    ],
+    "Type": "Polyline",
+    "Class": "RLE",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "HyperBird_"
+  },
+  {
+    "staBuildingID": "ZRHSTB_HHBZ",
+    "staBuildingName": "海华北站",
+    "Conpoints": [
+      [
+        8823.5,
+        -63,
+        8199.5
+      ],
+      [
+        8823.5,
+        -63,
+        8295.5
+      ],
+      [
+        8677.5,
+        -63,
+        8295.5
+      ],
+      [
+        8677.5,
+        -63,
+        8199.5
+      ]
+    ],
+    "Floors": [],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "HyperBird_"
+  },
+  {
+    "plfRoundID": "ZRH7PFB_1",
+    "plfRoundName": "海华北站",
+    "LineID": "ZRH7_A_01",
+    "Flrpoints": [
+      [
+        8782.5,
+        -63,
+        8200.5
+      ],
+      [
+        8798.5,
+        -63,
+        8200.5
+      ],
+      [
+        8798.5,
+        -63,
+        8294.5
+      ],
+      [
+        8782.5,
+        -63,
+        8294.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "HyperBird_"
+  },
+  {
+    "platformID": "ZRH7PLF*1*D",
+    "platformName": "海华北站-2站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 8785.5,
+      "z": 8247.5
+    },
+    "lines": [
+      {
+        "ID": "ZRH7_A_01_D",
+        "stationCode": 1,
+
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "HyperBird_"
+  },
+  {
+    "platformID": "ZRH7PLF*1*U",
+    "platformName": "海华北站-1站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 8792.5,
+      "z": 8247.5
+    },
+    "lines": [
+      {
+        "ID": "ZRH7_A_01_U",
+        "stationCode": 1,
+
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "HyperBird_"
+  },
+  {
+    "stationID": "ZRH7STA_1",
+    "stationName": "海华北站",
+    "STBuilding": "ZRHSTB_HHBZ",
+    "coordinate": {
+      "x": 8790.5,
+      "z": 8247.5
+    },
+    "platforms": [
+      {
+        "ID": "ZRH7PLF*1*D"
+      },
+      {
+        "ID": "ZRH7PLF*1*U"
+      }
+    ],
+    "Type": "Points",
+    "Class": "STA",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "HyperBird_"
+  },
+  {
+    "staBuildingID": "ZRHSTB_HZZX",
+    "staBuildingName": "会展中心",
+    "Conpoints": [
+      [
+        8980.5,
+        -63,
+        7978.5
+      ],
+      [
+        9058.5,
+        -63,
+        7978.5
+      ],
+      [
+        9058.5,
+        -63,
+        8022.5
+      ],
+      [
+        8980.5,
+        -63,
+        8022.5
+      ]
+    ],
+    "Floors": [],
+    "Type": "Polygon",
+    "Class": "STB",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "HyperBird_"
+  },
+  {
+    "plfRoundID": "ZRH7PFB_2",
+    "plfRoundName": "会展中心",
+    "LineID": "ZRH7_A_01",
+    "Flrpoints": [
+      [
+        8980.5,
+        -63,
+        7978.5
+      ],
+      [
+        9058.5,
+        -63,
+        7978.5
+      ],
+      [
+        9058.5,
+        -63,
+        8022.5
+      ],
+      [
+        8980.5,
+        -63,
+        8022.5
+      ]
+    ],
+    "Type": "Polygon",
+    "Class": "PFB",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "HyperBird_"
+  },
+  {
+    "platformID": "ZRH7PLF*2*D",
+    "platformName": "会展中心-2站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 9019.5,
+      "z": 7983.5
+    },
+    "lines": [
+      {
+        "ID": "ZRH7_A_01_D",
+        "stationCode": 2,
+
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "HyperBird_"
+  },
+  {
+    "platformID": "ZRH7PLF*2*U",
+    "platformName": "会展中心-2站台",
+    "Situation": true,
+    "Connect": true,
+    "coordinate": {
+      "x": 9019.5,
+      "z": 8017.5
+    },
+    "lines": [
+      {
+        "ID": "ZRH7_A_01_U",
+        "stationCode": 1,
+        "Avaliable": true,
+        "Overtaking": false,
+        "getin": true,
+        "getout": true,
+        "NextOT": false
+      }
+    ],
+    "Type": "Points",
+    "Class": "PLF",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "HyperBird_"
+  },
+  {
+    "stationID": "ZRH7STA_2",
+    "stationName": "会展中心",
+    "STBuilding": "ZRHSTB_HZZX",
+    "coordinate": {
+      "x": 9019.5,
+      "z": 8000.5
+    },
+    "platforms": [
+      {
+        "ID": "ZRH7PLF*2*D"
+      },
+      {
+        "ID": "ZRH7PLF*2*U"
+      }
+    ],
+    "Type": "Points",
+    "Class": "STA",
+    "World": 0,
+    "CreateTime": "20251231",
+    "CreateBy": "HyperBird_"
+  }
+]

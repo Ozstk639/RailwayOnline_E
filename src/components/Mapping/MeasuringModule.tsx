@@ -464,6 +464,88 @@ const confirmExitAndClear = (actionLabel: string) => {
   return true;
 };
 
+// ===== 模式切换（完整 <-> 快捷） =====
+// 目标：
+// 1) 测绘已开启时，允许在下拉菜单内切换另一种模式
+// 2) 若存在“未完成编辑/未完成工作流/合一草稿”等临时内容，则提示确认
+// 3) 模式切换仅清理临时容器（workflow + draft + 编辑/绘制态），不删除 fixed 图层与图层管理区内容
+
+const hasUnsavedWorkForVariantSwitch = () => {
+  // ① 编辑/绘制中的临时几何
+  const hasFullTemp = drawing || editingLayerId !== null || tempPoints.length > 0;
+
+  // ② 快捷工作流的运行态
+  const hasWorkflowTemp = workflowRunning;
+
+  // ③ “合一”草稿（内部有附加信息/未提交）
+  const hasSpecial = specialDraftMode !== 'none' && hasSpecialDraftData();
+
+  // ④ 兜底：若草稿容器仍有内容，也视为未完成（避免边界残留）
+  const hasDraftLayers =
+    (draftGeomRef.current?.getLayers?.().length ?? 0) > 0 ||
+    (draftEndpointRef.current?.getLayers?.().length ?? 0) > 0 ||
+    (draftVertexOverlayRef.current?.getLayers?.().length ?? 0) > 0;
+
+  // ⑤ 兜底：快捷工作流预览容器仍有内容
+  const hasWorkflowPreview = workflowPreviewMapRef.current.size > 0;
+
+  return hasFullTemp || hasWorkflowTemp || hasSpecial || hasDraftLayers || hasWorkflowPreview;
+};
+
+const clearTemporaryForVariantSwitch = () => {
+  // 仅清理临时容器：workflow + draft + 编辑/绘制态；不清 fixedRoot 与 layers
+  workflowRootRef.current?.clearLayers();
+  workflowPreviewMapRef.current.clear();
+  clearDraftOverlays();
+
+  // 编辑/绘制态复位
+  setTempPoints([]);
+  setRedoStack([]);
+  setEditingLayerId(null);
+  setDrawing(false);
+  setDrawMode('none');
+
+  // 工作流态复位
+  setWorkflowRunning(false);
+
+  // 控制点显示复位（避免切换后意外常显）
+  setShowDraftControlPoints(false);
+  setShowDraftControlPointCoords(false);
+  setDrawClickSuppressed(false);
+  setShowDraftControlPointsLocked(false);
+
+  // 合一草稿复位
+  if (specialDraftMode !== 'none') setSpecialDraftMode('none');
+};
+
+const switchMeasuringVariantFromMenu = (target: 'full' | 'workflow') => {
+  if (!measuringActive) return;
+  if (target === measuringVariant) {
+    // 仍收起菜单，避免用户误以为没有响应
+    setMeasureDropdownOpen(false);
+    return;
+  }
+
+  const label = target === 'full' ? '完整模式' : '快捷模式';
+
+  const doSwitch = () => {
+    // 切换时建议关闭导入面板，避免 UI 残留
+    setImportPanelOpen(false);
+    clearTemporaryForVariantSwitch();
+    setMeasuringVariant(target);
+    setMeasureDropdownOpen(false);
+  };
+
+  // 若存在未完成内容：提示确认（文案与“关闭时”保持同类语义，但仅清理临时/切断工作流）
+  if (hasUnsavedWorkForVariantSwitch()) {
+    const ok = window.confirm(`切换到${label}将清除临时测绘图层并结束当前未完成的编辑/工作流，是否确认？`);
+    if (!ok) return;
+  }
+
+  // “合一”模式需额外确认（其内部附加信息不应静默丢弃）
+  requestExitSpecialDraftIfNeeded(doSwitch);
+};
+
 const startMeasuringFromMenu = (variant: 'full' | 'workflow') => {
   if (measuringActive) return;
 
@@ -2208,14 +2290,46 @@ const workflowBridge: WorkflowBridge = {
             </AppButton>
           </>
         ) : (
-          <AppButton
-            onClick={endMeasuringFromMenu}
-            className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors text-gray-700"
-            type="button"
-          >
-            <X className="w-4 h-4" />
-            <span className="font-medium">结束测绘</span>
-          </AppButton>
+          <>
+            <AppButton
+              onClick={() => switchMeasuringVariantFromMenu('full')}
+              className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors ${
+                measuringVariant === 'full'
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'hover:bg-gray-50 text-gray-700'
+              }`}
+              type="button"
+              disabled={measuringVariant === 'full'}
+              title={measuringVariant === 'full' ? '当前已是完整模式' : '切换到完整测绘模式'}
+            >
+              <Pencil className="w-4 h-4" />
+              <span>切换到完整模式</span>
+            </AppButton>
+
+            <AppButton
+              onClick={() => switchMeasuringVariantFromMenu('workflow')}
+              className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors ${
+                measuringVariant === 'workflow'
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'hover:bg-gray-50 text-gray-700'
+              }`}
+              type="button"
+              disabled={measuringVariant === 'workflow'}
+              title={measuringVariant === 'workflow' ? '当前已是快捷模式' : '切换到快捷测绘模式'}
+            >
+              <Pencil className="w-4 h-4" />
+              <span>切换到快捷模式</span>
+            </AppButton>
+
+            <AppButton
+              onClick={endMeasuringFromMenu}
+              className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors text-gray-700"
+              type="button"
+            >
+              <X className="w-4 h-4" />
+              <span className="font-medium">结束测绘</span>
+            </AppButton>
+          </>
         )}
 
         {/* 导入数据：仅开始测绘后显示 */}
@@ -2338,32 +2452,40 @@ const workflowBridge: WorkflowBridge = {
     </AppCard>
   );
 
-  const emptyLayerCard = (
-    <AppCard className="w-full p-3">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="font-bold text-sm text-gray-700">图层</h3>
-      </div>
-      <div className="text-sm text-gray-500">未开启测绘</div>
-    </AppCard>
-  );
 
-  const rightDockNode = launcherSlot ? (
-    launcherSlot(launcherContent)
-  ) : (
-    <div className="hidden sm:block">
-      <div className="fixed top-4 right-4 z-[1001] flex flex-col gap-3 w-80">
-        {measuringActive ? layerPanelCard : emptyLayerCard}
-        <AppCard className="w-full p-3 overflow-visible">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-bold text-sm text-gray-700">工具</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {launcherContent}
-          </div>
-        </AppCard>
-      </div>
+
+// 1) 启动按钮节点：允许被外部收纳，但不要影响其它面板渲染
+const launcherNode = launcherSlot ? (
+  launcherSlot(launcherContent)
+) : (
+  <div className="hidden sm:block">
+    <div className="fixed top-4 right-4 z-[1001]">
+      {launcherContent}
     </div>
-  );
+  </div>
+);
+
+// 2) 桌面端图层管理：仅在 measuringActive 时出现（保持原先行为）
+const layerManagerDesktopNode = measuringActive ? (
+  <div className="hidden sm:block">
+    {/* 注意：fixed + z-index，避免被父容器 overflow/布局挤出 */}
+    <div className="fixed top-80 right-12 z-[1001] w-80 max-h-[50vh] overflow-y-auto">
+      {layerPanelCard}
+    </div>
+  </div>
+) : null;
+
+// 3) 合并输出：launcherSlot 只影响 launcher，不再“短路”图层管理
+const rightDockNode = (
+  <>
+    {launcherNode}
+    {layerManagerDesktopNode}
+  </>
+);
+
+
+
+
 
   return (
     <>

@@ -885,15 +885,6 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
           { key: 'Group', label: '分组(Group)', type: 'text', optional: true },
         ],
       },
-
-      {
-        key: 'Stations',
-        label: '包含车站 Stations',
-        addButtonText: '添加车站条目',
-        fields: [
-          { key: 'ID', label: '车站ID', type: 'text' }, 
-        ],
-      },
     ],
     buildFeatureInfo: ({ op, mode, coords, values, groups, worldId, editorId, prevFeatureInfo, now }) => {
       const base = pickByFields(values, FORMAT_REGISTRY['车站建筑'].fields);
@@ -910,11 +901,8 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
           })
         : [];
 
-      const Stations = Array.isArray(groups.Stations)
-        ? groups.Stations.map((it: any) => ({ ID: it?.ID ?? '' }))
-        : [];
-
-      const out = { ...base, Conpoints, Floors, Stations };
+      // 注意：STB 不再包含 Stations 分组（STA -> STB 的归属已改为 STA.STBuilding 单向指向）
+      const out = { ...base, Conpoints, Floors };
       return withSystemFields(FORMAT_REGISTRY['车站建筑'], out, { op, mode, worldId, editorId, prevFeatureInfo, now });
     },
     hydrate: (featureInfo) => ({
@@ -930,10 +918,6 @@ if (typeof item.Connect !== 'boolean') return '缺少或非法 Connect（boolean
               ID: f?.ID ?? '',
               Group: f?.Group ?? '',
             }))
-          : [],
-
-        Stations: Array.isArray(featureInfo?.Stations)
-          ? featureInfo.Stations.map((s: any) => ({ ID: s?.ID ?? '' }))
           : [],
       },
     }),

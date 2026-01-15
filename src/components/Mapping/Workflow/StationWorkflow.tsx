@@ -210,7 +210,6 @@ export default function StationWorkflow(props: WorkflowComponentProps) {
 
   // STB page
   const [stbAbbrA, setStbAbbrA] = useState('');
-  const [stbAbbrB, setStbAbbrB] = useState('');
   const [stbFinalized, setStbFinalized] = useState(false);
   const [stbSkipped, setStbSkipped] = useState(false);
   const [stbId, setStbId] = useState('');
@@ -262,11 +261,16 @@ export default function StationWorkflow(props: WorkflowComponentProps) {
     const bureau = String(base.bureau ?? '').trim();
     const lineNo = String(base.lineNo ?? '').trim();
     const section = String(base.sectionCode ?? '').trim();
-    if (!bureau || !lineNo) return '';
-    // 与铁路工作流保持一致的“线路ID引用”生成方式（此处 times 固定 01）
-    if (section) return `${worldPrefix}R${bureau}${lineNo}_${section}_01`;
-    return `${worldPrefix}R${bureau}${lineNo}`;
+    // 区段代码在本工作流中为必填；在其为空时不生成引用ID，避免自动回填写入“缺区段”的临时值。
+    // 典型现象：用户先填 stationNo 再填 sectionCode 时，早期 effect 会把默认线路ID锁定为无区段版本，
+    // 从而首次进入上下行站台页面出现类似 "ZRT131_D" 的格式。
+    if (!bureau || !lineNo || !section) return '';
+    // 与铁路工作流保持一致的“线路ID引用”生成方式（不包含测绘次数）
+    return `${worldPrefix}R${bureau}${lineNo}_${section}`;
   }, [base.bureau, base.lineNo, base.sectionCode, worldPrefix]);
+
+  const lineIdDownRef = useMemo(() => (lineIdRef ? `${lineIdRef}_D` : ''), [lineIdRef]);
+  const lineIdUpRef = useMemo(() => (lineIdRef ? `${lineIdRef}_U` : ''), [lineIdRef]);
 
   const stationId = useMemo(() => {
     const bureau = String(base.bureau ?? '').trim();
@@ -278,11 +282,11 @@ export default function StationWorkflow(props: WorkflowComponentProps) {
 
   // 为默认 lines[0].ID 自动回填
   useEffect(() => {
-    if (!lineIdRef) return;
+    if (!lineIdDownRef && !lineIdUpRef) return;
     setPlfLinesDown((prev) => {
       if (!prev?.length) return prev;
       const next = [...prev];
-      if (!String(next[0]?.ID ?? '').trim()) next[0] = { ...next[0], ID: lineIdRef };
+      if (!String(next[0]?.ID ?? '').trim() && lineIdDownRef) next[0] = { ...next[0], ID: lineIdDownRef };
       // stationCode 默认 = stationNo
       const sc = String(base.stationNo ?? '').trim();
       if (sc && (next[0].stationCode === undefined || next[0].stationCode === '')) next[0] = { ...next[0], stationCode: sc };
@@ -291,12 +295,12 @@ export default function StationWorkflow(props: WorkflowComponentProps) {
     setPlfLinesUp((prev) => {
       if (!prev?.length) return prev;
       const next = [...prev];
-      if (!String(next[0]?.ID ?? '').trim()) next[0] = { ...next[0], ID: lineIdRef };
+      if (!String(next[0]?.ID ?? '').trim() && lineIdUpRef) next[0] = { ...next[0], ID: lineIdUpRef };
       const sc = String(base.stationNo ?? '').trim();
       if (sc && (next[0].stationCode === undefined || next[0].stationCode === '')) next[0] = { ...next[0], stationCode: sc };
       return next;
     });
-  }, [lineIdRef, base.stationNo]);
+  }, [lineIdDownRef, lineIdUpRef, base.stationNo]);
 
   // step -> draw mode
   useEffect(() => {
@@ -383,9 +387,7 @@ export default function StationWorkflow(props: WorkflowComponentProps) {
     const pts = b.getTempPoints() ?? [];
     if (pts.length < 3) return;
 
-    const abbrA = String(stbAbbrA ?? '').trim();
-    const abbrB = String(stbAbbrB ?? '').trim();
-    const abbr = (abbrA + abbrB).trim();
+    const abbr = String(stbAbbrA ?? '').trim();
     if (!abbr) {
       alert('请填写“车站名字符简称”。');
       return;
@@ -395,11 +397,6 @@ export default function StationWorkflow(props: WorkflowComponentProps) {
     const buildingId = `${worldPrefix}R${bureau}STB_${abbr}`;
     const buildingName = String(base.stationName ?? '').trim();
 
-    if (!stationId) {
-      alert('基础信息不完整：无法生成 stationID。');
-      return;
-    }
-
     const res = b.commitFeature({
       subType: '车站建筑',
       mode: 'polygon',
@@ -408,9 +405,7 @@ export default function StationWorkflow(props: WorkflowComponentProps) {
         staBuildingID: buildingId,
         staBuildingName: buildingName,
       },
-      groupInfo: {
-        Stations: [{ ID: stationId }],
-      },
+      groupInfo: {},
       editorId: String(creatorId ?? '').trim(),
     });
 
@@ -501,7 +496,7 @@ export default function StationWorkflow(props: WorkflowComponentProps) {
       return;
     }
 
-    const id = `${worldPrefix}R${String(base.bureau).trim()}${String(base.lineNo).trim()}PLF*${String(base.stationNo).trim()}*D`;
+    const id = `${worldPrefix}R${String(base.bureau).trim()}${String(base.lineNo).trim()}PLF_${String(base.stationNo).trim()}_D`;
     const name = `${String(base.stationName).trim()}-${no}站台`;
 
     const res = b.commitFeature({
@@ -546,7 +541,7 @@ export default function StationWorkflow(props: WorkflowComponentProps) {
       return;
     }
 
-    const id = `${worldPrefix}R${String(base.bureau).trim()}${String(base.lineNo).trim()}PLF*${String(base.stationNo).trim()}*U`;
+    const id = `${worldPrefix}R${String(base.bureau).trim()}${String(base.lineNo).trim()}PLF_${String(base.stationNo).trim()}_U`;
     const name = `${String(base.stationName).trim()}-${no}站台`;
 
     const res = b.commitFeature({
@@ -723,12 +718,6 @@ export default function StationWorkflow(props: WorkflowComponentProps) {
               value={stbAbbrA}
               onChange={setStbAbbrA}
               placeholder="例如：XZM"
-            />
-            <LabeledInput
-              label="车站名字符简称（2）"
-              value={stbAbbrB}
-              onChange={setStbAbbrB}
-              placeholder="可留空"
             />
           </div>
 

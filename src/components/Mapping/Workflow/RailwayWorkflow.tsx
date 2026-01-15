@@ -19,7 +19,7 @@ import AppButton from '@/components/ui/AppButton';
  * - MeasuringModule 需保证：setDrawMode('none') 时隐藏绘制相关按钮；setDrawMode('polyline') 时允许绘制。
  */
 
-type DirChoice = '上行' | '下行' | '联络线' | '其他';
+type DirChoice = '上行' | '下行' | '联络线' | '其他' | '股道' | '支线' | '无方向联络线';
 type BranchChoice = '三线合一' | '上下行单划';
 
 type Step =
@@ -33,7 +33,6 @@ type Step =
 type InfoForm = {
   lineName: string;
   sectionCode: string;
-  times: string;           // 默认 "1"
   bureau: string;
   lineNo: string;
   colorHexNoHash: string;  // 不含#
@@ -60,10 +59,6 @@ const WORLD_CODE_TO_PREFIX: Record<number, string> = {
   5: 'Y',
 };
 
-function pad2(n: number) {
-  const nn = Math.max(0, Math.floor(n));
-  return String(nn).padStart(2, '0');
-}
 
 function dist2(a: WorldPoint, b: WorldPoint) {
   const dx = (a.x ?? 0) - (b.x ?? 0);
@@ -219,7 +214,6 @@ export default function RailwayWorkflow(props: WorkflowComponentProps) {
   const [info, setInfo] = useState<InfoForm>({
     lineName: '',
     sectionCode: '',
-    times: '1',
     bureau: '',
     lineNo: '',
     colorHexNoHash: '',
@@ -238,7 +232,7 @@ export default function RailwayWorkflow(props: WorkflowComponentProps) {
     [centerPoints]
   );
 
-  const shouldSkipBranch = useMemo(() => dirChoice === '联络线' || dirChoice === '其他', [dirChoice]);
+  const shouldSkipBranch = useMemo(() => ['联络线', '其他', '股道', '支线', '无方向联络线'].includes(dirChoice), [dirChoice]);
 
   // --------- Step enter effects (控制绘制模式/草稿点载入) ----------
   useEffect(() => {
@@ -375,17 +369,17 @@ export default function RailwayWorkflow(props: WorkflowComponentProps) {
     const lineNo = String(info.lineNo ?? '').trim();
     const section = String(info.sectionCode ?? '').trim();
 
-    const t = Number(String(info.times ?? '1').trim());
-    const times2 = pad2(Number.isFinite(t) ? t : 1);
-
-    // 例：ZRT1_A_01
-    return `${prefix}R${bureau}${lineNo}_${section}_${times2}`;
+    // 例：ZRT1_A
+    return `${prefix}R${bureau}${lineNo}_${section}`;
   };
 
   const buildColor = () => sanitizeColorNoHash(info.colorHexNoHash);
 
   const buildDirectionValue = () => {
     if (dirChoice === '联络线') return 4;
+    if (dirChoice === '股道') return 5;
+    if (dirChoice === '支线') return 6;
+    if (dirChoice === '无方向联络线') return 7;
     if (dirChoice === '其他') return 2;
     // 上/下行：展示线
     return 3;
@@ -445,7 +439,6 @@ export default function RailwayWorkflow(props: WorkflowComponentProps) {
     const need: Array<[keyof InfoForm, string]> = [
       ['lineName', '线路名'],
       ['sectionCode', '区段代码'],
-      ['times', '测绘次数'],
       ['bureau', '路局代码'],
       ['lineNo', '线路编号'],
       ['colorHexNoHash', '标准色号'],
@@ -498,8 +491,8 @@ export default function RailwayWorkflow(props: WorkflowComponentProps) {
       return;
     }
 
-    // 联络线/其他：直接结束工作流回到选择页
-    if (dirChoice === '联络线' || dirChoice === '其他') {
+    // 联络线/其他/股道/支线/无方向联络线：直接结束工作流回到选择页
+    if (dirChoice === '联络线' || dirChoice === '其他' || dirChoice === '股道' || dirChoice === '支线' || dirChoice === '无方向联络线') {
       bridgeRef.current.exitWorkflowToSelector();
       return;
     }
@@ -757,6 +750,9 @@ export default function RailwayWorkflow(props: WorkflowComponentProps) {
               <option value="上行">上行</option>
               <option value="下行">下行</option>
               <option value="联络线">联络线</option>
+              <option value="股道">股道</option>
+              <option value="支线">支线</option>
+              <option value="无方向联络线">无方向联络线</option>
               <option value="其他">其他</option>
             </select>
           </label>
@@ -869,20 +865,12 @@ if (step === 'branch') {
             value={info.lineName}
             onChange={(v) => setInfo((s) => ({ ...s, lineName: v }))}
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <LabeledInput
+          <LabeledInput
               label="区段代码"
               value={info.sectionCode}
               onChange={(v) => setInfo((s) => ({ ...s, sectionCode: v }))}
               placeholder="例如：A"
             />
-            <LabeledInput
-              label="测绘次数（默认 1）"
-              value={info.times}
-              onChange={(v) => setInfo((s) => ({ ...s, times: v }))}
-              placeholder="1"
-            />
-          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <LabeledInput
@@ -927,7 +915,7 @@ if (step === 'branch') {
           </AppButton>
 
           <div className="text-xs opacity-70">
-            点击完成将：构建 LineID、输出展示线（dir=3 或联络线/其他为 dir=4/2），并按选择生成后续上下行线。
+            点击完成将：构建 LineID、输出展示线（dir=3；联络线=4；股道=5；支线=6；无方向联络线=7；其他=2），并按选择生成后续上下行线。
           </div>
         </div>
       </div>

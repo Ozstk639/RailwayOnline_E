@@ -254,7 +254,7 @@ type PlfLineRef = {
   getin?: boolean;
   getout?: boolean;
   NextOT?: boolean;
-  stationDistance?: number; // 若存在可作为投影里程的强提示（可选）
+  stationDistance?: number; // 仅人工记录，不参与任何计算
   bureau?: string;
   line?: string;
 };
@@ -1122,15 +1122,9 @@ function makeOccs(
       // 站台整体启用开关
       if (!plf.Situation) continue;
 
-      // 投影里程：优先 stationDistance（若你后续保证该字段是沿线里程，可提升稳定性）
-      let m = Number.isFinite(ref.stationDistance as any) ? Number(ref.stationDistance) : NaN;
-      if (!Number.isFinite(m)) {
-        const proj = projectPointToPolylineMeasure(plf.coordinate, line);
-        m = proj.m;
-      } else {
-        // clamp
-        m = Math.max(0, Math.min(line.totalLen, m));
-      }
+      // 投影里程：严格按“无 stationDistance 时”的方式计算（仅基于平台坐标对线路 polyline 投影）
+      const proj = projectPointToPolylineMeasure(plf.coordinate, line);
+      const m = proj.m;
 
       const isJunction = plf.Connect === false;
       const stationId = platformToStation.get(plf.platformID);
