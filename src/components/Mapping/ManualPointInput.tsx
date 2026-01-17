@@ -16,6 +16,9 @@ export interface ManualPointInputProps {
   /** 是否允许使用（例如 drawMode === 'none' 或当前不在绘制/编辑状态时禁用） */
   enabled?: boolean;
 
+  /** 当前绘制模式：用于批量输入时决定是否仅录入第一个点 */
+  activeMode?: 'none' | 'point' | 'polyline' | 'polygon' | string;
+
   /** 默认 y 值（与你项目里常见 -64/-63 的 JSON 高度保持一致） */
   defaultY?: number;
 
@@ -25,12 +28,14 @@ export interface ManualPointInputProps {
 
 const isValid = (n: number | null) => typeof n === 'number' && Number.isFinite(n);
 
-export default function ManualPointInput({ enabled = true, defaultY = -64, onSubmit }: ManualPointInputProps) {
+export default function ManualPointInput({ enabled = true, activeMode = 'none', defaultY = -64, onSubmit }: ManualPointInputProps) {
   const [open, setOpen] = useState(false);
 
   const [xRaw, setXRaw] = useState('');
   const [yRaw, setYRaw] = useState(String(defaultY));
   const [zRaw, setZRaw] = useState('');
+
+  const [batchRaw, setBatchRaw] = useState('');
 
   const disabled = !enabled;
 
@@ -52,6 +57,64 @@ export default function ManualPointInput({ enabled = true, defaultY = -64, onSub
     }
 
     onSubmit({ x: x!, y: y!, z: z! });
+  };
+
+  const parseBatch = (raw: string) => {
+    const norm = String(raw ?? '')
+      .replace(/；/g, ';')
+      .replace(/\n+/g, ';')
+      .replace(/\r+/g, ';');
+    const parts = norm
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const yDefault = parseHalfStepNumber(yRaw);
+    const yFallback = isValid(yDefault) ? (yDefault as number) : defaultY;
+
+    const points: ManualPointInputValue[] = [];
+    for (let i = 0; i < parts.length; i++) {
+      const token = parts[i];
+      // 支持 x,y,z 或 x,z；同时兼容中文逗号/空格分隔
+      const nums = token
+        .split(/[,，\s]+/)
+        .map((t) => t.trim())
+        .filter(Boolean);
+
+      if (nums.length !== 2 && nums.length !== 3) {
+        return { ok: false as const, error: `第 ${i + 1} 组坐标格式非法：需为 x,y,z 或 x,z（以 ; 分隔）。` };
+      }
+
+      const x = parseHalfStepNumber(nums[0]);
+      const y = nums.length === 3 ? parseHalfStepNumber(nums[1]) : yFallback;
+      const z = parseHalfStepNumber(nums.length === 3 ? nums[2] : nums[1]);
+
+      if (!isValid(x) || !isValid(y) || !isValid(z)) {
+        return { ok: false as const, error: `第 ${i + 1} 组坐标非法：仅允许整数或 .5 的数值。` };
+      }
+
+      points.push({ x: x as number, y: y as number, z: z as number });
+    }
+
+    return { ok: true as const, points };
+  };
+
+  const submitBatch = () => {
+    if (disabled) return;
+
+    const r = parseBatch(batchRaw);
+    if (!r.ok) {
+      window.alert(r.error);
+      return;
+    }
+    if (r.points.length === 0) return;
+
+    // 点要素：仅录入第一个坐标；线/面：按顺序逐一录入
+    if (String(activeMode) === 'point') {
+      onSubmit(r.points[0]);
+      return;
+    }
+    r.points.forEach((p) => onSubmit(p));
   };
 
   return (
@@ -125,6 +188,27 @@ export default function ManualPointInput({ enabled = true, defaultY = -64, onSub
           <AppButton type="button" className="bg-green-500 text-white px-3 py-1 rounded" onClick={submit}>
             完成
           </AppButton>
+        </div>
+
+        <div className="mt-4 pt-3 border-t">
+          <div className="text-xs text-gray-600 mb-2">
+            批量输入：按 <code className="px-1 bg-gray-100 rounded">x,y,z;x,y,z;</code> 或 <code className="px-1 bg-gray-100 rounded">x,z;x,z;</code> 输入。
+            以 <code className="px-1 bg-gray-100 rounded">;</code> 分隔；若省略 y，则使用上方 Y（无效则回退 {defaultY}）。
+            点要素仅录入第一个坐标。
+          </div>
+
+          <textarea
+            value={batchRaw}
+            onChange={(e) => setBatchRaw(e.target.value)}
+            className="w-full h-24 px-2 py-1 border rounded text-sm font-mono"
+            placeholder="例如：10, -64, 20; 11, -64, 21;\n或：10,20;11,21;"
+          />
+
+          <div className="mt-2 flex justify-end">
+            <AppButton type="button" className="bg-blue-600 text-white px-3 py-1 rounded" onClick={submitBatch}>
+              按序录入
+            </AppButton>
+          </div>
         </div>
       </div>
     </div>

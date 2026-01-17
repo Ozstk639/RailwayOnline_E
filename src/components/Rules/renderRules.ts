@@ -211,7 +211,24 @@ function stableStringify(obj: any): string {
   return JSON.stringify(rec(obj));
 }
 
-function pickIdFieldValue(featureInfo: any, cls: string): { idField: string; idValue: string } {
+
+/**
+ * 规则显式路径读取（方案2B）：支持形如 'tags.xxx' 的访问。
+ * - 仅用于读取，不做写入。
+ * - path 为空/读取失败时返回 undefined。
+ */
+export function getValueByPath(obj: any, path: string): any {
+  if (!path) return undefined;
+  const parts = String(path).split('.').filter(Boolean);
+  let cur: any = obj;
+  for (const k of parts) {
+    if (cur === null || cur === undefined) return undefined;
+    cur = (cur as any)[k];
+  }
+  return cur;
+}
+
+export function pickIdFieldValue(featureInfo: any, cls: string): { idField: string; idValue: string } {
   const tryField = (field: string): string | null => {
     const v = (featureInfo as any)?.[field];
     const s = String(v ?? '').trim();
@@ -254,6 +271,18 @@ export function buildFeatureMeta(featureInfo: any, cls: string, type: GeoType, s
   for (const [k, v] of Object.entries(featureInfo ?? {})) {
     // 坐标字段排除
     if (k === 'Conpoints' || k === 'Flrpoints' || k === 'PLpoints' || k === 'Linepoints' || k === 'coordinate') continue;
+
+    // tags：需要参与 signature（用于去重/差分），同时支持规则显式路径 tags.xxx
+    if (k === 'tags') {
+      sig[k] = v;
+      continue;
+    }
+
+    // extensions：仅记录信息，不参与 signature（避免 signature 过大/不稳定）
+    if (k === 'extensions') {
+      groups[k] = v;
+      continue;
+    }
 
     if (Array.isArray(v) || isPlainObject(v)) {
       groups[k] = v;

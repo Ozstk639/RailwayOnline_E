@@ -60,6 +60,8 @@ import StationWorkflow from '@/components/Mapping/Workflow/StationWorkflow';
 import AppButton from '@/components/ui/AppButton';
 import AppCard from '@/components/ui/AppCard';
 
+import { checkTempMountIdConflicts, type TempLayerIdCandidate } from '@/components/Rules/globalIdIndex';
+
 
 
 /**
@@ -327,6 +329,32 @@ useEffect(() => {
 // ======== JSON 导出窗口（替代 alert/print） ========
 const [jsonPanelOpen, setJsonPanelOpen] = useState(false);
 const [jsonPanelText, setJsonPanelText] = useState('');
+const [jsonExportSubType, setJsonExportSubType] = useState<FeatureKey | '__ALL__'>('__ALL__');
+
+// 临时挂载到 RuleDrivenLayer 的本地存储 key（与 RuleDrivenLayer 保持一致）
+const TEMP_RULE_SOURCES_KEY = 'ria_temp_rule_sources_v1';
+
+type TempRuleSource = {
+  uid: string;
+  worldId: string;
+  label?: string;
+  enabled: boolean;
+  items: any[];
+};
+
+// ======== “临时挂载(全局)”只读模式（模块化开关，便于后续移除） ========
+const [tempMountAllActive, setTempMountAllActive] = useState(false);
+const TEMP_MOUNT_READONLY_REASON = '临时挂载模式下仅可查看，无法编辑或保存。';
+const isTempMountReadonly = tempMountAllActive;
+const guardTempMountReadonly = () => {
+  if (!isTempMountReadonly) return false;
+  window.alert(TEMP_MOUNT_READONLY_REASON);
+  return true;
+};
+
+// ======== 临时挂载：全局ID冲突检查遮罩（<1s 不显示） ========
+const [tempMountIdCheckOpen, setTempMountIdCheckOpen] = useState(false);
+const [tempMountIdCheckText, setTempMountIdCheckText] = useState('正在对比要素ID...');
 
 
 type SpecialDraftMode =
@@ -451,6 +479,12 @@ const confirmExitAndClear = (actionLabel: string) => {
   // 清空测绘图层（fixed + draft）及状态
   clearAllLayers();
 
+  // 退出测绘时：附加信息与特殊格式草稿一并复位（避免下次进入残留上次 UI）
+  setSubType('默认');
+  setFeatureInfo({});
+  setGroupInfo({});
+  resetSpecialDrafts();
+
   // 额外确保草稿容器也清掉（避免残留）
   draftGeomRef.current?.clearLayers();
 
@@ -554,6 +588,12 @@ const startMeasuringFromMenu = (variant: 'full' | 'workflow') => {
 
   // 进入测绘前清空
   clearAllLayers();
+
+  // 打开测绘时：附加信息与特殊格式草稿复位到初始状态
+  setSubType('默认');
+  setFeatureInfo({});
+  setGroupInfo({});
+  resetSpecialDrafts();
 
   setMeasuringVariant(variant);
   setWorkflowRunning(false);
@@ -891,6 +931,7 @@ useEffect(() => {
 
 
 const finishLayer = () => {
+  if (guardTempMountReadonly()) return;
   const map = leafletMapRef.current;
   const proj = projectionRef.current;
   if (!map || !proj) return;
@@ -1206,13 +1247,15 @@ const getLayerJSONOutput = (layer: LayerType) => {
   return layerToJsonText(layer);
 };
 
-// 导出“图层管理区全部图层”的 JSON（外层为数组；每个条目与单层导出一致）
-const getAllLayersJSONOutput = () => {
+const getLayersJSONOutputBySubType = (target: FeatureKey | '__ALL__') => {
   const items = layers
     .filter((l) => Boolean(l?.jsonInfo?.featureInfo))
+    .filter((l) => {
+      if (target === '__ALL__') return true;
+      return (l.jsonInfo?.subType as any) === target;
+    })
     .map((l) => {
       try {
-        // 单层导出返回形如: [ { ... } ]，这里取第 1 个元素
         const one = JSON.parse(layerToJsonText(l));
         if (Array.isArray(one) && one.length > 0) return one[0];
         return null;
@@ -1225,8 +1268,199 @@ const getAllLayersJSONOutput = () => {
   return JSON.stringify(items, null, 2);
 };
 
+const getAvailableSubTypes = (): FeatureKey[] => {
+  const set = new Set<string>();
+  for (const l of layers) {
+    const st = l.jsonInfo?.subType;
+    if (st && typeof st === 'string' && st !== '默认') set.add(st);
+  }
+  return Array.from(set) as FeatureKey[];
+};
 
- 
+const getLayerDisplayTitle = (l: LayerType) => {
+  const fi = l?.jsonInfo?.featureInfo;
+  const st = l?.jsonInfo?.subType as FeatureKey | undefined;
+  if (!fi || !st || !(FORMAT_REGISTRY as any)[st]) {
+    return `#${l.id} ${l.mode}`;
+  }
+  const def = (FORMAT_REGISTRY as any)[st] as any;
+  const idKey = Array.isArray(def?.fields)
+    ? (def.fields.find((f: any) => typeof f?.key === 'string' && (String(f.key).endsWith('ID') || String(f.key).endsWith('Id') || String(f.key).endsWith('id')))?.key as string | undefined)
+    : undefined;
+  const nameKey = Array.isArray(def?.fields)
+    ? (def.fields.find((f: any) => typeof f?.key === 'string' && (String(f.key).endsWith('Name') || String(f.key).endsWith('name')))?.key as string | undefined)
+    : undefined;
+
+  const idVal = idKey ? String((fi as any)[idKey] ?? '').trim() : '';
+  const nameVal = nameKey ? String((fi as any)[nameKey] ?? '').trim() : '';
+  const head = idVal || `#${l.id}`;
+  const mid = nameVal ? ` ${nameVal}` : '';
+  return `${head}${mid}`;
+};
+
+// 图层主 ID（用于全局重复性检查/提示）：尽量与 getLayerDisplayTitle 保持一致的取值策略
+const getLayerPrimaryIdValue = (l: LayerType): string => {
+  const fi = l?.jsonInfo?.featureInfo;
+  const st = l?.jsonInfo?.subType as FeatureKey | undefined;
+  if (!fi || !st || !(FORMAT_REGISTRY as any)[st]) return '';
+  const def = (FORMAT_REGISTRY as any)[st] as any;
+  const idKey = Array.isArray(def?.fields)
+    ? (def.fields.find((f: any) => typeof f?.key === 'string' && (String(f.key).endsWith('ID') || String(f.key).endsWith('Id') || String(f.key).endsWith('id')))?.key as string | undefined)
+    : undefined;
+  return idKey ? String((fi as any)[idKey] ?? '').trim() : '';
+};
+
+const readTempRuleSources = (): Record<string, TempRuleSource[]> => {
+  try {
+    const raw = localStorage.getItem(TEMP_RULE_SOURCES_KEY);
+    if (!raw) return {};
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== 'object') return {};
+    return obj as any;
+  } catch {
+    return {};
+  }
+};
+
+const writeTempRuleSources = (all: Record<string, TempRuleSource[]>) => {
+  try {
+    localStorage.setItem(TEMP_RULE_SOURCES_KEY, JSON.stringify(all));
+    window.dispatchEvent(new CustomEvent('ria-temp-rule-sources-changed', { detail: { worldId: currentWorldId } }));
+  } catch {
+    // ignore
+  }
+};
+
+const [tempMountUiVersion, setTempMountUiVersion] = useState(0);
+
+const getLayerTempUid = (layerId: number) => `${currentWorldId}::layer-${layerId}`;
+
+const getTempMountedEntryByLayer = (layerId: number): TempRuleSource | undefined => {
+  const uid = getLayerTempUid(layerId);
+  const all = readTempRuleSources();
+  const list = (all?.[currentWorldId] ?? []) as any[];
+  if (!Array.isArray(list)) return undefined;
+  const found = list.find((x) => x && typeof x === 'object' && String((x as any).uid) === uid);
+  return found as any;
+};
+
+const setTempMountedEnabledForLayer = (layerId: number, enabled: boolean) => {
+  const uid = getLayerTempUid(layerId);
+  const all = readTempRuleSources();
+  const prev = Array.isArray(all?.[currentWorldId]) ? (all[currentWorldId] as any[]) : [];
+  const next = prev.map((x) => {
+    if (x && typeof x === 'object' && String((x as any).uid) === uid) {
+      return { ...(x as any), enabled: Boolean(enabled) };
+    }
+    return x;
+  });
+  writeTempRuleSources({ ...all, [currentWorldId]: next as any });
+  setTempMountUiVersion((v) => v + 1);
+};
+
+const removeAllTempMountedLayersForWorld = (layerIds: number[]) => {
+  const all = readTempRuleSources();
+  const prev = Array.isArray(all?.[currentWorldId]) ? (all[currentWorldId] as any[]) : [];
+  const uidSet = new Set(layerIds.map((id) => getLayerTempUid(id)));
+  const next = prev.filter((x) => !(x && typeof x === 'object' && uidSet.has(String((x as any).uid))));
+  writeTempRuleSources({ ...all, [currentWorldId]: next as any });
+  setTempMountUiVersion((v) => v + 1);
+};
+
+const mountAllLayersToTempSources = (layerList: LayerType[]) => {
+  const all = readTempRuleSources();
+  const prev = Array.isArray(all?.[currentWorldId]) ? (all[currentWorldId] as any[]) : [];
+
+  // 先移除同 uid 的旧条目（避免重复）
+  const uidSet = new Set(layerList.map((l) => getLayerTempUid(l.id)));
+  const kept = prev.filter((x) => !(x && typeof x === 'object' && uidSet.has(String((x as any).uid))));
+
+  const nextEntries: TempRuleSource[] = [];
+  for (const layer of layerList) {
+    let items: any[] = [];
+    try {
+      const one = JSON.parse(layerToJsonText(layer));
+      if (Array.isArray(one)) items = one;
+    } catch {
+      items = [];
+    }
+    if (!items.length) continue;
+    nextEntries.push({
+      uid: getLayerTempUid(layer.id),
+      worldId: currentWorldId,
+      label: getLayerDisplayTitle(layer),
+      enabled: Boolean(layer.visible),
+      items,
+    });
+  }
+
+  writeTempRuleSources({ ...all, [currentWorldId]: [...kept, ...nextEntries] as any });
+  setTempMountUiVersion((v) => v + 1);
+};
+
+//（单图层临时挂载按钮已被“全局临时挂载”替代，故移除相关逻辑）
+// ======== 临时挂载(全局)状态同步：若当前 world 存在 layer-* 的临时源，则视为已进入挂载模式 ========
+useEffect(() => {
+  const sync = () => {
+    const all = readTempRuleSources();
+    const list = (all?.[currentWorldId] ?? []) as any[];
+    const has = Array.isArray(list) && list.some((x) => {
+      const uid = x && typeof x === 'object' ? String((x as any).uid ?? '') : '';
+      return uid.startsWith(`${currentWorldId}::layer-`);
+    });
+    setTempMountAllActive(has);
+  };
+
+  sync();
+  const handler = () => sync();
+  window.addEventListener('ria-temp-rule-sources-changed', handler as any);
+  return () => window.removeEventListener('ria-temp-rule-sources-changed', handler as any);
+}, [currentWorldId]);
+
+// ======== 图层管理：顶部横向滚动条（始终可见）与内容区横向滚动同步 ========
+const layerMgrTopXRef = useRef<HTMLDivElement | null>(null);
+const layerMgrBodyRef = useRef<HTMLDivElement | null>(null);
+const layerMgrSpacerRef = useRef<HTMLDivElement | null>(null);
+const layerMgrSyncLockRef = useRef(false);
+
+useEffect(() => {
+  const top = layerMgrTopXRef.current;
+  const body = layerMgrBodyRef.current;
+  const spacer = layerMgrSpacerRef.current;
+  if (!top || !body || !spacer) return;
+
+  const syncSpacerWidth = () => {
+    spacer.style.width = `${body.scrollWidth}px`;
+  };
+  syncSpacerWidth();
+
+  const onTopScroll = () => {
+    if (layerMgrSyncLockRef.current) return;
+    layerMgrSyncLockRef.current = true;
+    body.scrollLeft = top.scrollLeft;
+    layerMgrSyncLockRef.current = false;
+  };
+  const onBodyScroll = () => {
+    if (layerMgrSyncLockRef.current) return;
+    layerMgrSyncLockRef.current = true;
+    top.scrollLeft = body.scrollLeft;
+    layerMgrSyncLockRef.current = false;
+  };
+
+  top.addEventListener('scroll', onTopScroll);
+  body.addEventListener('scroll', onBodyScroll);
+
+  const ro = new ResizeObserver(syncSpacerWidth);
+  ro.observe(body);
+
+  return () => {
+    top.removeEventListener('scroll', onTopScroll);
+    body.removeEventListener('scroll', onBodyScroll);
+    ro.disconnect();
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [layers.length, tempMountAllActive, tempMountUiVersion, measuringActive]);
+
  
 const handleUndo = () => {
   if (!tempPoints.length) return;
@@ -1351,6 +1585,7 @@ const currentTempOutput = () => {
 
  
 const editLayer = (id: number) => {
+  if (guardTempMountReadonly()) return;
   const layer = layers.find(l => l.id === id);
   if (!layer) return;
 
@@ -1985,6 +2220,7 @@ const resetFeatureFormToDefault = () => {
 };
 
 const handleDrawModeButtonClick = (m: 'point' | 'polyline' | 'polygon') => {
+  if (guardTempMountReadonly()) return;
   requestSwitchWithExtraWarn(() => {
     const sameMode = drawMode === m;
 
@@ -2054,6 +2290,7 @@ const stopWorkflowToSelector = () => {
 };
 
 const startWorkflow = () => {
+  if (guardTempMountReadonly()) return;
   if (workflowRunning) return;
 
   // 快捷模式下：开始工作流前重置草稿/临时输出（保持 fixed 不动）
@@ -2357,17 +2594,80 @@ const workflowBridge: WorkflowBridge = {
     </div>
   );
 
+  // ======== 图层管理：临时挂载(全局)切换（存在即移除） ========
+  const toggleTempMountAllLayers = async (layerList: LayerType[], busy: boolean) => {
+    if (busy) return;
+    const ids = layerList.map((l) => l.id);
+
+    // 已挂载：移除所有 layer-* 临时源，并恢复测绘图层显示（存在即移除）
+    if (tempMountAllActive) {
+      removeAllTempMountedLayersForWorld(ids);
+      setTempMountAllActive(false);
+      // 恢复 fixedRoot 显示（避免退出挂载后仍然空白）
+      syncFixedRoot(layers, editingLayerId);
+      return;
+    }
+
+    // 未挂载：先做“全局数据库（RULE_DATA_SOURCES 全文件）”ID 重复性检查
+    const candidates: TempLayerIdCandidate[] = layerList
+      .map((l) => ({
+        title: getLayerDisplayTitle(l),
+        id: getLayerPrimaryIdValue(l),
+      }))
+      .filter((c) => String(c.id ?? '').trim().length > 0);
+
+    let shown = false;
+    const timer = window.setTimeout(() => {
+      shown = true;
+      setTempMountIdCheckText('正在对比临时图层ID...');
+      setTempMountIdCheckOpen(true);
+    }, 1000);
+
+    try {
+      setTempMountIdCheckText('正在读取全局数据库要素索引...');
+      const messages = await checkTempMountIdConflicts({ worldId: currentWorldId, candidates });
+      if (messages.length > 0) {
+        // 若出现重复：弹窗提示并保持未挂载状态
+        if (shown) setTempMountIdCheckOpen(false);
+        window.alert(messages.join('\n'));
+        return;
+      }
+    } finally {
+      window.clearTimeout(timer);
+      if (shown) setTempMountIdCheckOpen(false);
+    }
+
+    // 通过检查：批量挂载所有图层（仅用于测试显示/去重/关联）
+    mountAllLayersToTempSources(layerList);
+    setTempMountAllActive(true);
+    // 挂载模式下仅观看：隐藏测绘图层显示，避免与规则渲染叠加
+    fixedRootRef.current?.clearLayers();
+  };
+
   const layerPanelCard = (
-    <AppCard className="w-full p-3 max-h-[70vh] overflow-y-auto">
+    <AppCard className="w-96 max-h-[70vh] overflow-hidden border">
+      {/* 标题栏（拖拽区域：前 48px） */}
+      <div className="flex items-center justify-between px-4 py-3 border-b">
+        <h3 className="font-bold text-gray-800">图层</h3>
+        <AppButton
+          onClick={closeMeasuringUI}
+          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+          aria-label="关闭"
+          title="退出测绘并清理"
+          type="button"
+        >
+          <X className="w-4 h-4" />
+        </AppButton>
+      </div>
+
       {(() => {
         const busy = (drawing && drawMode !== 'none') || editingLayerId !== null;
-        const visibleList = layers.filter((l) => l.id !== editingLayerId); // 编辑中的层在列表隐藏
+        const visibleList = layers.filter((l) => l.id !== editingLayerId);
 
         return (
           <>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-bold text-sm text-gray-700">图层</h3>
-
+            {/* 标题下按钮行：整体JSON + 临时挂载（全局） */}
+            <div className="flex items-center gap-2 px-4 py-2 border-b">
               <AppButton
                 type="button"
                 className={`px-2 py-1 text-sm rounded border ${
@@ -2385,67 +2685,141 @@ const workflowBridge: WorkflowBridge = {
                 disabled={busy || visibleList.length === 0}
                 onClick={() => {
                   if (busy || visibleList.length === 0) return;
-                  setJsonPanelText(getAllLayersJSONOutput());
+                  setJsonExportSubType('__ALL__');
+                  setJsonPanelText(getLayersJSONOutputBySubType('__ALL__'));
                   setJsonPanelOpen(true);
                 }}
               >
                 整体JSON
               </AppButton>
+
+              <AppButton
+                type="button"
+                className={`px-2 py-1 text-sm rounded border ${
+                  busy || visibleList.length === 0
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-gray-200'
+                    : tempMountAllActive
+                      ? 'bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700'
+                      : 'bg-emerald-200 text-emerald-900 border-emerald-300 hover:bg-emerald-300'
+                }`}
+                title={
+                  busy
+                    ? '当前有要素正在编辑/绘制，请先保存'
+                    : visibleList.length === 0
+                      ? '暂无图层'
+                      : tempMountAllActive
+                        ? '取消临时挂载（存在即移除）'
+                        : '临时挂载所有图层到规则图层（用于测试显示/去重/关联）'
+                }
+                disabled={busy || visibleList.length === 0}
+                onClick={() => void toggleTempMountAllLayers(visibleList, busy)}
+              >
+                {tempMountAllActive ? '取消临时挂载' : '临时挂载'}
+              </AppButton>
             </div>
 
-            {visibleList.map((l) => (
-              <div key={l.id} className="flex items-center gap-1 mb-1">
-                <AppButton
-                  className={`px-2 py-1 text-sm ${l.visible ? 'bg-green-300' : 'bg-gray-300'}`}
-                  onClick={() => toggleLayerVisible(l.id)}
-                  type="button"
-                >
-                  {l.visible ? '隐藏' : '显示'}
-                </AppButton>
-
-                <AppButton className="px-2 py-1 text-sm bg-blue-200" onClick={() => moveLayerUp(l.id)} type="button">
-                  ↑
-                </AppButton>
-
-                <AppButton className="px-2 py-1 text-sm bg-blue-200" onClick={() => moveLayerDown(l.id)} type="button">
-                  ↓
-                </AppButton>
-
-                <AppButton
-                  className={`px-2 py-1 text-sm ${
-                    busy ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-yellow-300 hover:bg-yellow-400'
-                  }`}
-                  disabled={busy}
-                  onClick={() => {
-                    if (busy) return;
-                    editLayer(l.id);
-                  }}
-                  type="button"
-                  title={busy ? '当前有要素正在编辑/绘制，请先保存' : '编辑'}
-                >
-                  编辑
-                </AppButton>
-
-                <AppButton className="px-2 py-1 text-sm bg-red-400 text-white" onClick={() => deleteLayer(l.id)} type="button">
-                  删除
-                </AppButton>
-
-                <AppButton
-                  className="px-3 py-1 text-sm bg-purple-400 text-white"
-                  onClick={() => {
-                    setJsonPanelText(getLayerJSONOutput(l));
-                    setJsonPanelOpen(true);
-                  }}
-                  type="button"
-                >
-                  JSON
-                </AppButton>
-
-                <div className="flex-1 text-sm truncate">
-                  #{l.id} {l.mode} <span style={{ color: l.color }}>■</span>
-                </div>
+            {/* 顶部横向滚动条：始终可见 */}
+            <div className="px-3 pt-2">
+              <div
+                ref={layerMgrTopXRef}
+                className="overflow-x-auto overflow-y-hidden h-3 rounded bg-gray-50 border"
+                title="左右滑动"
+              >
+                <div ref={layerMgrSpacerRef} className="h-1" />
               </div>
-            ))}
+            </div>
+
+            {/* 列表：纵向滚动 + 横向滚动（与顶部同步） */}
+            <div ref={layerMgrBodyRef} className="px-3 pb-3 max-h-[50vh] overflow-y-auto overflow-x-auto">
+              <div className="min-w-max">
+                {visibleList.map((l) => {
+                  const entry = getTempMountedEntryByLayer(l.id);
+                  const enabled = entry ? Boolean(entry.enabled) : false;
+
+                  // 挂载模式：仅显示 enabled 开关（true/false）与标题
+                  if (tempMountAllActive) {
+                    return (
+                      <div key={l.id} className="flex items-center gap-2 mb-1 whitespace-nowrap min-w-[520px]">
+                        <AppButton
+                          type="button"
+                          className={`px-2 py-1 text-sm rounded border ${
+                            enabled
+                              ? 'bg-emerald-600 text-white border-emerald-700'
+                              : 'bg-gray-200 text-gray-700 border-gray-300'
+                          }`}
+                          onClick={() => setTempMountedEnabledForLayer(l.id, !enabled)}
+                          title="作为规则图层开关：enabled=true/false"
+                        >
+                          {enabled ? 'enabled=true' : 'enabled=false'}
+                        </AppButton>
+
+                        <div className="flex-1 text-sm truncate">
+                          {getLayerDisplayTitle(l)}
+                          <span className="text-gray-400"> {String(l.jsonInfo?.subType ?? l.mode)}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // 普通模式：保留原图层管理能力（不再提供单图层“临时挂载”按钮）
+                  return (
+                    <div key={l.id} className="flex items-center gap-1 mb-1 whitespace-nowrap min-w-[640px]">
+                      <AppButton
+                        className={`px-2 py-1 text-sm ${l.visible ? 'bg-green-300' : 'bg-gray-300'}`}
+                        onClick={() => toggleLayerVisible(l.id)}
+                        type="button"
+                      >
+                        {l.visible ? '隐藏' : '显示'}
+                      </AppButton>
+
+                      <AppButton className="px-2 py-1 text-sm bg-blue-200" onClick={() => moveLayerUp(l.id)} type="button">
+                        ↑
+                      </AppButton>
+
+                      <AppButton className="px-2 py-1 text-sm bg-blue-200" onClick={() => moveLayerDown(l.id)} type="button">
+                        ↓
+                      </AppButton>
+
+                      <AppButton
+                        className={`px-2 py-1 text-sm ${
+                          busy ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-yellow-300 hover:bg-yellow-400'
+                        }`}
+                        disabled={busy}
+                        onClick={() => {
+                          if (busy) return;
+                          editLayer(l.id);
+                        }}
+                        type="button"
+                        title={busy ? '当前有要素正在编辑/绘制，请先保存' : '编辑'}
+                      >
+                        编辑
+                      </AppButton>
+
+                      <AppButton className="px-2 py-1 text-sm bg-red-400 text-white" onClick={() => deleteLayer(l.id)} type="button">
+                        删除
+                      </AppButton>
+
+                      <AppButton
+                        className="px-3 py-1 text-sm bg-purple-400 text-white"
+                        onClick={() => {
+                          setJsonPanelText(getLayerJSONOutput(l));
+                          setJsonPanelOpen(true);
+                        }}
+                        type="button"
+                      >
+                        JSON
+                      </AppButton>
+
+                      <div className="flex-1 text-sm truncate">
+                        {getLayerDisplayTitle(l)}
+                        <span className="text-gray-400"> {String(l.jsonInfo?.subType ?? l.mode)}</span>
+                        <span style={{ color: l.color }} className="ml-1">■</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </>
         );
       })()}
@@ -2465,13 +2839,12 @@ const launcherNode = launcherSlot ? (
   </div>
 );
 
-// 2) 桌面端图层管理：仅在 measuringActive 时出现（保持原先行为）
+// 2) 桌面端图层管理：仅在 measuringActive 时出现（与测绘主面板一致：可拖拽，关闭=退出测绘并清理）
 const layerManagerDesktopNode = measuringActive ? (
   <div className="hidden sm:block">
-    {/* 注意：fixed + z-index，避免被父容器 overflow/布局挤出 */}
-    <div className="fixed top-80 right-12 z-[1001] w-80 max-h-[50vh] overflow-y-auto">
+    <DraggablePanel id="measuring-layers" defaultPosition={{ x: 960, y: 360 }} zIndex={1790}>
       {layerPanelCard}
-    </div>
+    </DraggablePanel>
   </div>
 ) : null;
 
@@ -2521,9 +2894,12 @@ const rightDockNode = (
     {(['point', 'polyline', 'polygon'] as const).map((m) => (
       <AppButton
         key={m}
-        className={`flex-1 py-1 border ${drawMode === m ? 'bg-blue-300' : ''}`}
+        className={`flex-1 py-1 border ${drawMode === m ? 'bg-blue-300' : ''} ${
+          isTempMountReadonly ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
         onClick={() => handleDrawModeButtonClick(m)}
         type="button"
+        disabled={isTempMountReadonly}
       >
         {m === 'point' ? '点' : m === 'polyline' ? '线' : '面'}
       </AppButton>
@@ -2542,9 +2918,9 @@ const rightDockNode = (
     </select>
 
     <AppButton
-      className={`px-3 py-1 rounded border ${workflowRunning ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+      className={`px-3 py-1 rounded border ${workflowRunning || isTempMountReadonly ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
       type="button"
-      disabled={workflowRunning}
+      disabled={workflowRunning || isTempMountReadonly}
       onClick={startWorkflow}
     >
       开始
@@ -2620,9 +2996,12 @@ onChange={(e) => {
 
     {measuringVariant === 'full' && (
       <AppButton
-        className="bg-green-500 text-white px-3 py-1 rounded-lg flex-1"
+        className={`px-3 py-1 rounded-lg flex-1 ${
+          isTempMountReadonly ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-green-500 text-white'
+        }`}
         onClick={finishLayer}
         type="button"
+        disabled={isTempMountReadonly}
       >
         {editingLayerId !== null ? '保存编辑图层' : '完成当前图层'}
       </AppButton>
@@ -2674,6 +3053,7 @@ onChange={(e) => {
 {/* 手动输入：不经过网格化再修正，仅允许整数或 .5 */}
 <ManualPointInput
   enabled={measuringActive && drawing && drawMode !== 'none' && !showDraftControlPointsLocked}
+  activeMode={drawMode}
   defaultY={-64}
   onSubmit={onManualPointSubmit}
 />
@@ -2908,9 +3288,12 @@ onChange={(e) => {
   {(['point', 'polyline', 'polygon'] as const).map((m) => (
     <AppButton
       key={m}
-      className={`flex-1 py-1 border ${drawMode === m ? 'bg-blue-300' : ''}`}
+      className={`flex-1 py-1 border ${drawMode === m ? 'bg-blue-300' : ''} ${
+        isTempMountReadonly ? 'opacity-50 cursor-not-allowed' : ''
+      }`}
       onClick={() => handleDrawModeButtonClick(m)}
       type="button"
+      disabled={isTempMountReadonly}
     >
       {m === 'point' ? '点' : m === 'polyline' ? '线' : '面'}
     </AppButton>
@@ -2970,9 +3353,12 @@ onChange={(e) => {
 
     {measuringVariant === 'full' && (
       <AppButton
-        className="bg-green-500 text-white px-3 py-1 rounded-lg flex-1"
+        className={`px-3 py-1 rounded-lg flex-1 ${
+          isTempMountReadonly ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-green-500 text-white'
+        }`}
         onClick={finishLayer}
         type="button"
+        disabled={isTempMountReadonly}
       >
         {editingLayerId !== null ? '保存编辑图层' : '完成当前图层'}
       </AppButton>
@@ -3327,48 +3713,118 @@ placeholder={
         </AppButton>
       </div>
 
-      <div className="p-3 space-y-2">
-        <textarea
-          readOnly
-          className="w-full h-64 border p-2 text-xs font-mono rounded"
-          value={jsonPanelText}
-        />
+      <div className="p-3 flex gap-3">
+        {/* 左侧：按要素类型分区导出 */}
+        <div className="w-28 shrink-0 border rounded p-2 bg-gray-50 max-h-[50vh] overflow-y-auto">
+          <div className="text-xs text-gray-500 mb-2">导出范围</div>
+          <div className="space-y-1">
+            <AppButton
+              type="button"
+              className={`w-full px-2 py-1 text-sm rounded border ${
+                jsonExportSubType === '__ALL__'
+                  ? 'bg-blue-600 text-white border-blue-700'
+                  : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+              }`}
+              onClick={() => {
+                setJsonExportSubType('__ALL__');
+                setJsonPanelText(getLayersJSONOutputBySubType('__ALL__'));
+              }}
+            >
+              全部
+            </AppButton>
+            {getAvailableSubTypes().map((k) => (
+              <AppButton
+                key={k}
+                type="button"
+                className={`w-full px-2 py-1 text-sm rounded border ${
+                  jsonExportSubType === k
+                    ? 'bg-blue-600 text-white border-blue-700'
+                    : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                }`}
+                onClick={() => {
+                  setJsonExportSubType(k);
+                  setJsonPanelText(getLayersJSONOutputBySubType(k));
+                }}
+              >
+                {k}
+              </AppButton>
+            ))}
+          </div>
+        </div>
 
-        <div className="flex gap-2">
-          <AppButton
-            className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg"
-            onClick={async () => {
-              const text = jsonPanelText ?? '';
-              try {
-                await navigator.clipboard.writeText(text);
-              } catch {
-                // fallback
-                const ta = document.createElement('textarea');
-                ta.value = text;
-                ta.style.position = 'fixed';
-                ta.style.left = '-9999px';
-                document.body.appendChild(ta);
-                ta.focus();
-                ta.select();
+        {/* 右侧：内容 + 操作 */}
+        <div className="flex-1 space-y-2">
+          <textarea
+            readOnly
+            className="w-full h-64 border p-2 text-xs font-mono rounded"
+            value={jsonPanelText}
+          />
+
+          <div className="flex gap-2">
+            <AppButton
+              className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg"
+              onClick={async () => {
+                const text = jsonPanelText ?? '';
                 try {
-                  document.execCommand('copy');
-                } finally {
-                  document.body.removeChild(ta);
+                  await navigator.clipboard.writeText(text);
+                } catch {
+                  // fallback
+                  const ta = document.createElement('textarea');
+                  ta.value = text;
+                  ta.style.position = 'fixed';
+                  ta.style.left = '-9999px';
+                  document.body.appendChild(ta);
+                  ta.focus();
+                  ta.select();
+                  try {
+                    document.execCommand('copy');
+                  } finally {
+                    document.body.removeChild(ta);
+                  }
                 }
-              }
-            }}
-            type="button"
-          >
-            复制
-          </AppButton>
+              }}
+              type="button"
+            >
+              复制
+            </AppButton>
 
-          <AppButton
-            className="flex-1 bg-gray-200 text-gray-800 px-3 py-2 rounded-lg"
-            onClick={() => setJsonPanelOpen(false)}
-            type="button"
-          >
-            关闭
-          </AppButton>
+            <AppButton
+              className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg"
+              onClick={() => {
+                const text = jsonPanelText ?? '';
+                const now = new Date();
+                const y = String(now.getFullYear());
+                const m = String(now.getMonth() + 1).padStart(2, '0');
+                const d = String(now.getDate()).padStart(2, '0');
+                const name = jsonExportSubType === '__ALL__' ? 'ALL' : String(jsonExportSubType);
+                const filename = `${name}_${y}${m}${d}.json`;
+                try {
+                  const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                } catch {
+                  // ignore
+                }
+              }}
+              type="button"
+            >
+              下载
+            </AppButton>
+
+            <AppButton
+              className="flex-1 bg-gray-200 text-gray-800 px-3 py-2 rounded-lg"
+              onClick={() => setJsonPanelOpen(false)}
+              type="button"
+            >
+              关闭
+            </AppButton>
+          </div>
         </div>
       </div>
     </AppCard>
@@ -3399,6 +3855,20 @@ placeholder={
         >
           确定
         </AppButton>
+      </div>
+    </AppCard>
+  </div>
+)}
+
+{tempMountIdCheckOpen && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+    <AppCard className="w-[420px] max-w-[90vw] border">
+      <div className="px-4 py-3 border-b font-bold text-sm">加载中</div>
+      <div className="px-4 py-3 text-sm text-gray-800">{tempMountIdCheckText}</div>
+      <div className="px-4 py-3 border-t">
+        <div className="h-2 bg-gray-200 rounded overflow-hidden">
+          <div className="h-2 bg-blue-600 rounded animate-pulse" style={{ width: '60%' }} />
+        </div>
       </div>
     </AppCard>
   </div>

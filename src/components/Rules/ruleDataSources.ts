@@ -63,7 +63,7 @@ export const RULE_DATA_SOURCES: Record<string, WorldRuleDataSource> = {
     'test.json',
     'H7 A 海华北-会展中心 251231.json',
     'T3测试.json',
-    'T5测试.json'
+    //'T5测试.json'
     ],
   },
 

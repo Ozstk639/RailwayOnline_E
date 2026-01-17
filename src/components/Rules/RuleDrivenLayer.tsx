@@ -364,6 +364,41 @@ const [leafletZoomState, setLeafletZoomState] = useState<number>(() => map.getZo
 
 const [dataVersion, setDataVersion] = useState(0);
 
+// ======== 临时挂载数据源（来自 MeasuringModule，本地存储） ========
+const [tempSourceVersion, setTempSourceVersion] = useState(0);
+
+const TEMP_RULE_SOURCES_KEY = 'ria_temp_rule_sources_v1';
+
+type TempRuleSource = {
+  uid: string;
+  worldId: string;
+  label?: string;
+  enabled: boolean;
+  items: any[];
+};
+
+function readTempSources(worldId: string): TempRuleSource[] {
+  try {
+    const raw = localStorage.getItem(TEMP_RULE_SOURCES_KEY);
+    if (!raw) return [];
+    const obj = JSON.parse(raw);
+    const list = (obj?.[worldId] ?? []) as any[];
+    if (!Array.isArray(list)) return [];
+    return list
+      .filter((x) => x && typeof x === 'object')
+      .map((x) => ({
+        uid: String((x as any).uid ?? ''),
+        worldId: String((x as any).worldId ?? worldId),
+        label: (x as any).label ? String((x as any).label) : undefined,
+        enabled: Boolean((x as any).enabled),
+        items: Array.isArray((x as any).items) ? (x as any).items : [],
+      }))
+      .filter((x) => x.uid && x.worldId === worldId);
+  } catch {
+    return [];
+  }
+}
+
 
 useEffect(() => {
   if (!mapReady) return;
@@ -378,6 +413,23 @@ useEffect(() => {
     map.off('moveend', sync);
   };
 }, [mapReady, map]);
+
+// 监听 MeasuringModule 写入的“临时挂载源”变化
+useEffect(() => {
+  if (!mapReady) return;
+  const handler = (e: any) => {
+    try {
+      const wid = e?.detail?.worldId;
+      if (!wid || String(wid) === String(worldId)) {
+        setTempSourceVersion((v) => v + 1);
+      }
+    } catch {
+      setTempSourceVersion((v) => v + 1);
+    }
+  };
+  window.addEventListener('ria-temp-rule-sources-changed', handler);
+  return () => window.removeEventListener('ria-temp-rule-sources-changed', handler);
+}, [mapReady, worldId]);
 
 
 // (1) 加载数据（worldId + dataSources）
@@ -398,6 +450,8 @@ useEffect(() => {
     }
 
     const all: FeatureRecord[] = [];
+
+    // (A) 固定数据源（public 下文件）
     for (const file of ds.files) {
       const url = `${ds.baseUrl.replace(/\/$/, '')}/${file}`;
       try {
@@ -407,6 +461,21 @@ useEffect(() => {
         // 单文件失败不阻塞其余文件
         console.warn(`[RuleDrivenLayer] failed to load ${url}`, e);
       }
+    }
+
+    // (B) 临时挂载数据源（来自 MeasuringModule，本地存储）
+    try {
+      const temps = readTempSources(worldId).filter((t) => t.enabled);
+      for (const t of temps) {
+        try {
+          const label = t.label ?? t.uid;
+          all.push(...buildRecordsFromJson(t.items, label));
+        } catch (e) {
+          console.warn('[RuleDrivenLayer] failed to load temp source', t.uid, e);
+        }
+      }
+    } catch (e) {
+      console.warn('[RuleDrivenLayer] readTempSources failed', e);
     }
 
     if (cancelled) return;
@@ -441,7 +510,7 @@ useEffect(() => {
   return () => {
     cancelled = true;
   };
-}, [mapReady, worldId]);
+}, [mapReady, worldId, tempSourceVersion]);
 
 
   // (3) 总开关：挂载/卸载 root layerGroup
